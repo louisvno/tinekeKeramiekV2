@@ -28,7 +28,7 @@ function ListItem(props) {
         });
     };
 
-    return <li><a href="#" onClick={handleClick}>{props.item.title}</a>{buttons}</li> ;
+    return <li><img src={props.item.downloadUrl}/><a href="#" onClick={handleClick}>{props.item.title}</a>{buttons}</li> ;
 }
 
 function PostList(props) {

@@ -1,14 +1,11 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
 import './App.css';
 import firebase from "firebase/app";
 import PostList from "./List"
-import CardForm from "./CardForm"
 import Map, { fromJS } from "immutable"
 
 import "firebase/auth";
 import "firebase/database";
-import { resolve } from 'url';
 
 class App extends Component {
   constructor(props){
@@ -16,12 +13,13 @@ class App extends Component {
     this.state = {
       items: null,
       selectedItem : null,
+      selectedItemThumbs: null,
       form:null,
-      formStates: []
     };
-    this.handleSubmit = this.handleSubmit.bind(this);
 
+    this.handleSubmit = this.handleSubmit.bind(this);
   }
+
   render() {
     return (
       <div className="App">
@@ -41,7 +39,7 @@ class App extends Component {
             <input type="text" value={this.state.form.get("title")} onChange={this.handleFormChange.bind(this,"title")} />
             <textarea value={this.state.form.get("text")} onChange={this.handleFormChange.bind(this,"text")} />
           </label>
-          <label for="post-category">Categorie
+          <label>Categorie
           <select name="post-category" id="post-category" 
             value={this.state.form.get("category")} 
             onChange={this.handleFormChange.bind(this,"category")}>
@@ -51,6 +49,12 @@ class App extends Component {
               <option value="anderwerk">Ander werk</option>
           </select>
           </label>
+          {this.state.selectedItemThumbs !== null?
+            < PostList items={this.state.selectedItemThumbs} 
+            buttons={[{label:"delete"}]}
+            onItemSelect={this.onItemSelect.bind(this)}
+            />: <div></div>
+          }
           <input type="submit" value="Submit" />
         </form>
           :<div></div>}
@@ -60,10 +64,10 @@ class App extends Component {
   componentDidMount() {
     this.getAllPosts()
   }
+
   handleFormChange(fieldName, event) {
     const newState = this.state.form.set(fieldName,event.target.value);
     this.setState({form: newState})
-    //this.state.formStates.push(newState)
   }
 
   handleSubmit(event){
@@ -74,7 +78,10 @@ class App extends Component {
   onItemSelect(id){
     this.setState({selectedItem: id})
     this.setState({form: fromJS(this.state.items[id])})
-    //this.setState({formStates:[fromJS(this.state.items[id])]})
+    //move to onMount?
+    this.getThumbsByPostId(id).then((res)=>{
+      this.setState({selectedItemThumbs: res.val()})
+    });
   }
 
   onItemUpdate(){
@@ -84,12 +91,26 @@ class App extends Component {
     })
   }
   //Firebase Queries
+  //This will compose update of post/thumbs/x500-1000
   updatePost(id,postData){
     let update={};
     update[process.env.REACT_APP_postRoot+id]=postData;
-    console.log(update)
     return firebase.database().ref().update(update);
   }
+
+  deleteImage(id,postData,thumbnailData){
+    //delete image from storage
+      //then
+    //update post
+    //delete thumbnail
+    //delete x500
+    //delete x1000
+  }
+
+  addImage(){
+    //should still only allow 4 images
+  }
+
   getMostRecentPosts (limit){
     return firebase.database().ref(process.env.REACT_APP_postRoot).limitToLast(limit).once("value");
   } 
@@ -98,7 +119,6 @@ class App extends Component {
       firebase.database().ref(process.env.REACT_APP_postRoot).on("value", (snapshot)=>{
         this.setState({items: snapshot.val()});
       })
-    
   } 
 
   getImgsByPostKey(folderName, postKey) {
