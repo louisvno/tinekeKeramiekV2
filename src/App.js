@@ -27,7 +27,7 @@ class App extends Component {
         {/*Post List*/}
         {this.state.items === null ? <div></div>
          :< PostList items={this.state.items} 
-          buttons={[{label:"delete"}]}
+          
           onItemSelect={this.onItemSelect.bind(this)}
          />}
 
@@ -52,9 +52,11 @@ class App extends Component {
           {this.state.selectedItemThumbs !== null?
             < PostList items={this.state.selectedItemThumbs} 
             buttons={[{label:"delete"}]}
+            buttonEvents={[this.deleteImage.bind(this)]}
             onItemSelect={this.onItemSelect.bind(this)}
             />: <div></div>
           }
+          {this.state.selectedItemThumbs !== null && this.state.selectedItemThumbs.length < 4 && this.addImageInputs().bind(this)}
           <input type="submit" value="Submit" />
         </form>
           :<div></div>}
@@ -63,6 +65,16 @@ class App extends Component {
   }
   componentDidMount() {
     this.getAllPosts()
+  }
+
+  addImageInputs(){
+    const inputs = [];
+    const toGenerate = 4 - this.state.selectedItemThumbs.length;
+    for (let index = 0; index < toGenerate; index++) {
+      inputs.push(
+        <input type="file" id="file1" accept="image/*" />)
+    }
+    return inputs;
   }
 
   handleFormChange(fieldName, event) {
@@ -79,8 +91,12 @@ class App extends Component {
     this.setState({selectedItem: id})
     this.setState({form: fromJS(this.state.items[id])})
     //move to onMount?
-    this.getThumbsByPostId(id).then((res)=>{
-      this.setState({selectedItemThumbs: res.val()})
+    this.getThumbsByPostId(id);
+  }
+
+  getThumbsByPostId(id) {
+    this.queryThumbsByPostId(id).then((res) => {
+      this.setState({ selectedItemThumbs: res.val() });
     });
   }
 
@@ -98,13 +114,21 @@ class App extends Component {
     return firebase.database().ref().update(update);
   }
 
-  deleteImage(id,postData,thumbnailData){
+  deleteImage(imgId){
     //delete image from storage
-      //then
-    //update post
+    const postId = this.state.selectedItem;
+    //then
+    let update={};
+    //update post 
+    //update[process.env.REACT_APP_postRoot + postId] = postData;
     //delete thumbnail
+    update[process.env.REACT_APP_thumbsPath + postId + "/" + imgId] = null;
     //delete x500
+    update[process.env.REACT_APP_imgx500path + postId + "/" + imgId]= null;
     //delete x1000
+    update[process.env.REACT_APP_imgx1000path + postId + "/" + imgId]= null;
+    console.log(update)
+    firebase.database().ref().update(update).then(this.getThumbsByPostId(postId))
   }
 
   addImage(){
@@ -133,7 +157,7 @@ class App extends Component {
     return firebase.database().ref(process.env.REACT_APP_postRoot + id).once("value");
   }
 
-  getThumbsByPostId(postId){
+  queryThumbsByPostId(postId){
     return firebase.database().ref(process.env.REACT_APP_thumbsPath + "/" + postId).once("value");
   }
 

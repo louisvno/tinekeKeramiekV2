@@ -20,12 +20,21 @@ function ListItem(props) {
         e.preventDefault();
         props.onItemSelect(props.id)
     }
+    function handlebuttonClick(index) {
+      return function (e){
+        e.preventDefault();
+        props.buttonEvents[index](props.id)
+      }
+    }
     const buttons = [];
 
     if(props.buttons && props.buttons.length !== 0){
-        props.buttons.forEach(button => {
-            buttons.push(<button key={button.label}>{button.label}</button>)
-        });
+        for (let index = 0; index < props.buttons.length; index++) {
+          buttons.push(<button key={props.buttons[index].label} 
+            onClick={handlebuttonClick()}>
+            {props.buttons[index].label}
+          </button>)          
+        }
     };
 
     return <li><img src={props.item.downloadUrl}/><a href="#" onClick={handleClick}>{props.item.title}</a>{buttons}</li> ;
@@ -38,6 +47,7 @@ function PostList(props) {
               id= {id}
               item={props.items[id]} 
               buttons = {props.buttons}
+              buttonEvents= {props.buttonEvents}
               onItemSelect= {props.onItemSelect}/>
   );
  
