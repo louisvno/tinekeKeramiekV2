@@ -18,6 +18,7 @@ class App extends Component {
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.handlePostChange = this.handlePostChange.bind(this);
   }
 
   render() {
@@ -36,13 +37,13 @@ class App extends Component {
          <form onSubmit={this.handleSubmit}>
           <label>
             Title:
-            <input type="text" value={this.state.form.get("title")} onChange={this.handleFormChange.bind(this,"title")} />
-            <textarea value={this.state.form.get("text")} onChange={this.handleFormChange.bind(this,"text")} />
+            <input type="text" value={this.state.form.get("title")} onChange={this.handlePostChange("title")} />
+            <textarea value={this.state.form.get("text")} onChange={this.handlePostChange("text")} />
           </label>
           <label>Categorie
           <select name="post-category" id="post-category" 
             value={this.state.form.get("category")} 
-            onChange={this.handleFormChange.bind(this,"category")}>
+            onChange={this.handlePostChange("category")}>
               <option value="default" disabled>Kies een categorie</option>
               <option value="dierfiguren">Dierfiguren</option>
               <option value="schalen">Schalen</option>
@@ -56,8 +57,9 @@ class App extends Component {
             onItemSelect={this.onItemSelect.bind(this)}
             />: <div></div>
           }
-          {this.state.selectedItemThumbs !== null && this.state.selectedItemThumbs.length < 4 && this.addImageInputs().bind(this)}
-          <input type="submit" value="Submit" />
+          {this.addImageInputs()}
+          <button type="button">Annuleren</button>
+          <button type="submit" >Opslaan</button>
         </form>
           :<div></div>}
       </div>
@@ -69,17 +71,37 @@ class App extends Component {
 
   addImageInputs(){
     const inputs = [];
-    const toGenerate = 4 - this.state.selectedItemThumbs.length;
-    for (let index = 0; index < toGenerate; index++) {
-      inputs.push(
-        <input type="file" id="file1" accept="image/*" />)
+    if(this.state.selectedItemThumbs !== null && Object.keys(this.state.selectedItemThumbs).length < 4){
+
+      const toGenerate = 4 - Object.keys(this.state.selectedItemThumbs).length;
+      for (let index = 0; index < toGenerate; index++) {
+        inputs.push(
+          <input key={index} type="file" accept="image/*" onChange={this.handlePostChange.bind(this,"img"+index)}/>)
+      }
     }
+ 
     return inputs;
   }
 
-  handleFormChange(fieldName, event) {
-    const newState = this.state.form.set(fieldName,event.target.value);
-    this.setState({form: newState})
+  handlePostChange(fieldName) {
+    return (event)=>{
+      const newState = this.state.form.set(fieldName,event.target.value);
+      this.setState({form: newState})
+    }
+  }
+
+  handleImageAdd(fieldName) {
+    return (event)=>{
+      const newState = this.state.form.set(fieldName,event.target.value);
+      this.setState({form: newState})
+    }
+  }
+
+  handleImageDelete(fieldName) {
+    return (event)=>{
+      const newState = this.state.form.set(fieldName,event.target.value);
+      this.setState({form: newState})
+    }
   }
 
   handleSubmit(event){
@@ -89,7 +111,17 @@ class App extends Component {
 
   onItemSelect(id){
     this.setState({selectedItem: id})
+    /* 
+    desired form structure:
+    {
+      post:{}
+      addedImages: []
+      removedImages: []
+    }
+    */
+    //Add to form added images and deleted images entries
     this.setState({form: fromJS(this.state.items[id])})
+
     //move to onMount?
     this.getThumbsByPostId(id);
   }
@@ -110,10 +142,12 @@ class App extends Component {
   //This will compose update of post/thumbs/x500-1000
   updatePost(id,postData){
     let update={};
+    //Check has Post update has deleted images? has new images?
     update[process.env.REACT_APP_postRoot+id]=postData;
     return firebase.database().ref().update(update);
   }
 
+  //TODO do real delete on submit
   deleteImage(imgId){
     //delete image from storage
     const postId = this.state.selectedItem;
