@@ -31,7 +31,7 @@ function ListItem(props) {
     if(props.buttons && props.buttons.length !== 0){
         for (let index = 0; index < props.buttons.length; index++) {
           buttons.push(<button key={props.buttons[index].label} 
-            onClick={handlebuttonClick()}>
+            onClick={handlebuttonClick(index)}>
             {props.buttons[index].label}
           </button>)          
         }
