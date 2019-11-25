@@ -6,6 +6,7 @@ import Map, { fromJS, List,Set, toJS } from "immutable"
 
 import "firebase/auth";
 import "firebase/database";
+import "firebase/storage";
 
 class App extends Component {
   constructor(props){
@@ -86,7 +87,7 @@ class App extends Component {
 
   handlePostEdit(fieldName) {
     return (event)=>{
-      const newFormState = this.state.form.setIn(['post',fieldName],event.target.value);
+      const newFormState = this.state.form.set(fieldName,event.target.value);
       this.setState({form: newFormState})
     }
   }
@@ -105,8 +106,8 @@ class App extends Component {
     event.preventDefault();
     let dbUpdates = this.mapFormToDBUpdates(this.state.form);
     console.log(dbUpdates)
-    firebase.database().ref().update(dbUpdates);
-    // TODO storage updates
+    //firebase.database().ref().update(dbUpdates);
+    //TODO add images > upload to storage bucket same folder? check code of storage bucket check legacy code of uploading image
   }
 
   onItemSelect(id){
@@ -154,8 +155,70 @@ class App extends Component {
     return dbUpdateStatement;
   }
 
-  mapFormToStorageUpdates(){
-    //let imgAdds = this.state.form.get('newImages').map(imgId => this.addImage(imgId, this.state.form.id));
+  //Migration tool to add new sourcepath table for images
+  migrate(){
+    Object.entries(this.state.items).forEach(([postKey,v]) =>  this.setStoragePathsFromLegacyPost(postKey,v)
+    .then((res)=> {
+      return Promise.all(
+        Object.keys(res).map(key =>{
+          firebase.database().ref('test_sourceImgs/' + postKey +'/'+ Object.values(res[key])[0]).set({path: key});
+        })
+      )
+    }));
+  }
+  setStoragePathsFromLegacyPost(id,post){
+    const expectedPaths = this.getExpectedPaths(post);
+    console.log(post)
+    return Promise.all([
+      this.getx500ByPostId(id),
+      this.getx1000ByPostId(id),
+      this.queryThumbsByPostId(id)])
+      
+    .then(([x500,x1000,thumbs]) => {
+     
+      Object.entries(x500.val()).forEach(([k,v])=>{
+        const x500Src = v.path.replace(/(\/)?x500_([^\/]*)$/,`$1$2`);
+        console.log(x500Src)
+        if(expectedPaths[x500Src] && expectedPaths[x500Src].hasOwnProperty(v.path)){
+          expectedPaths[x500Src][v.path] = k;
+        } else {
+          console.warn("Unexpected path: " + v.path)
+        }
+      })
+
+      Object.entries(x1000.val()).forEach(([k,v])=>{
+        const x1000Src = v.path.replace(/(\/)?x1000_([^\/]*)$/,`$1$2`);
+
+        if(expectedPaths[x1000Src] && expectedPaths[x1000Src].hasOwnProperty(v.path)){
+          expectedPaths[x1000Src][v.path] = k;
+        } else {
+          console.warn("Unexpected path: " + v.path)
+        }
+      })
+      Object.entries(thumbs.val()).forEach(([k,v])=>{
+        const thumbSrc = v.path.replace(/(\/)?thumb_([^\/]*).png$/,`$1$2`);
+
+        if(expectedPaths[thumbSrc] && expectedPaths[thumbSrc].hasOwnProperty(v.path)){
+          expectedPaths[thumbSrc][v.path] = k;
+        } else {
+          console.warn("Unexpected path: " + v.path)
+        }
+      })
+      
+      return expectedPaths;
+    })
+  }
+
+  getExpectedPaths(post){
+    const postImgs = post.images;
+    let imgKeys ={};
+    Object.entries(postImgs).map(([k,v]) => {
+      imgKeys[v.storagePath] = {};
+      imgKeys[v.storagePath][v.storagePath.replace(/(\/)?([^\/]*)$/, `$1thumb_$2`) +".png"]= null
+      imgKeys[v.storagePath][v.storagePath.replace(/(\/)?([^\/]*)$/, `$1x500_$2`)] = null
+      imgKeys[v.storagePath][v.storagePath.replace(/(\/)?([^\/]*)$/, `$1x1000_$2`) ]= null
+    })
+    return imgKeys;
   }
 
   getPostUpdateStatement(form){
@@ -191,8 +254,15 @@ class App extends Component {
     return update;
   }
 
-  addImage(){
+  addNewImages(form){
     //should still only allow 4 images
+    const imgAdds = form.get('newImages');
+    return Promise.all(
+      imgAdds.map((img) => this.getStorageRef(form.id, "newwwwImg").put(img))
+    )
+  }
+  getStorageRef (folderName, fileName){ 
+    return firebase.storage().ref().child(folderName + "/" + fileName);
   }
 
   getMostRecentPosts (limit){
@@ -223,6 +293,9 @@ class App extends Component {
 
   getx500ByPostId(postId){
     return firebase.database().ref(process.env.REACT_APP_imgx500path +"/"+ postId).once("value");
+  }
+  getx1000ByPostId(postId){
+    return firebase.database().ref(process.env.REACT_APP_imgx1000path +"/"+ postId).once("value");
   }
 
   getx500ById(postId,imgId){
