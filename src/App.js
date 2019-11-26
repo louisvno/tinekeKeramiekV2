@@ -106,6 +106,7 @@ class App extends Component {
     event.preventDefault();
     let dbUpdates = this.mapFormToDBUpdates(this.state.form);
     console.log(dbUpdates)
+    this.addNewImages(this.state.form)
     //firebase.database().ref().update(dbUpdates);
     //TODO add images > upload to storage bucket same folder? check code of storage bucket check legacy code of uploading image
   }
@@ -257,9 +258,12 @@ class App extends Component {
   addNewImages(form){
     //should still only allow 4 images
     const imgAdds = form.get('newImages');
+    console.log(imgAdds)
     return Promise.all(
-      imgAdds.map((img) => this.getStorageRef(form.id, "newwwwImg").put(img))
-    )
+      imgAdds.map((img) => this.getStorageRef(form.get('id'), img.name).put(img))
+    ).catch(error =>{
+      console.log(error)
+    })
   }
   getStorageRef (folderName, fileName){ 
     return firebase.storage().ref().child(folderName + "/" + fileName);
