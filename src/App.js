@@ -167,6 +167,7 @@ class App extends Component {
       )
     }));
   }
+  
   setStoragePathsFromLegacyPost(id,post){
     const expectedPaths = this.getExpectedPaths(post);
     console.log(post)
@@ -224,17 +225,7 @@ class App extends Component {
 
   getPostUpdateStatement(form){
     let update={};
-    const postImgs = this.state.selectedPost.images;
-    // this is a bit shady to link the thumbnail to the image in the post
-    let imgKeys ={};
-    Object.entries(postImgs).map(([k,v]) => {
-      imgKeys[v.storagePath.replace(/(\/)?([^\/]*)$/, `$1thumb_$2`) +".png"] = k;  
-    })   
-    form.get('removedImageIds')
-      .map(id => this.state.selectedItemThumbs[id].path)
-      .map(storagePath => imgKeys[storagePath])
-      .map(node => update[process.env.REACT_APP_postRoot + form.get('id') + "/images/"+node]=null)
-
+    // Nice to have: check if changed from initial state
     // title statement
     update[process.env.REACT_APP_postRoot + form.get('id') + "/title"] = form.get('title');
     // text
@@ -252,6 +243,9 @@ class App extends Component {
     update[process.env.REACT_APP_imgx500path + postId + "/" + imgId]= null;
     //delete x1000
     update[process.env.REACT_APP_imgx1000path + postId + "/" + imgId]= null;
+    //delete source
+    update[process.env.REACT_APP_sourcepath + postId + "/" + imgId]= null;
+
     return update;
   }
 
@@ -265,6 +259,7 @@ class App extends Component {
       console.log(error)
     })
   }
+
   getStorageRef (folderName, fileName){ 
     return firebase.storage().ref().child(folderName + "/" + fileName);
   }
