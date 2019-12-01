@@ -8,7 +8,6 @@ import Map, { fromJS, List,Set, toJS } from "immutable"
 import "firebase/auth";
 import "firebase/database";
 import "firebase/storage";
-import { strict } from 'assert';
 
 class App extends Component {
   constructor(props){
@@ -18,7 +17,8 @@ class App extends Component {
       selectedItem : null,
       selectedItemThumbs: null,
       form:null,
-      selectedPost: null
+      selectedPost: null,
+      uploadsPending: [],
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -81,8 +81,12 @@ class App extends Component {
       const toGenerate = 4 - Object.keys(this.state.selectedItemThumbs).length;
       for (let index = 0; index < toGenerate; index++) {
         inputs.push(
-          <ImgUpload key={index} 
-          postId={this.state.form.get('id')}/>)
+          <ImgUpload 
+          strokeLinecap='butt' 
+          key={index} 
+          postId={this.state.form.get('id')}
+          />
+        )
       }
     }
     return inputs;
@@ -94,58 +98,6 @@ class App extends Component {
       this.setState({form: newFormState})
     }
   }
-
-  /*handleImageAddhandleImageAdd(event) {
-    const img = event.target.files[0]
-    const newFormState = this.state.form.updateIn(['newImages'], list => list.push(img));
-    // get an image id from the DB and set in queue
-    const queueRef = firebase.database().ref('test_imageQueue/'+this.state.form.get('id'));
-    const imgId = queueRef.push();
-    // upload to storage using this id
-    const storageRef = this.getStorageRef(this.state.form.get('id') + "/"+ imgId, img.name);
-    const uploadTask = storageRef.put(img);
-    //monitor upload process
-    uploadTask.on(firebase.storage.TaskEvent.STATE_CHANGED, // or 'state_changed'
-      function(snapshot) {
-        // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-        var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log('Upload is ' + progress + '% done');
-      }, function(error) {
-
-      // A full list of error codes is available at
-      // https://firebase.google.com/docs/storage/web/handle-errors
-      switch (error.code) {
-        case 'storage/unauthorized':
-          // User doesn't have permission to access the object
-          break;
-
-        case 'storage/canceled':
-          // User canceled the upload
-          break;
-
-        case 'storage/unknown':
-          // Unknown error occurred, inspect error.serverResponse
-          break;
-      }
-    }, function() {
-      queueRef.child(imgId).set({
-        path: storageRef.fullPath,
-        timeCreated: new Date()
-      });
-      // Upload completed successfully, now we can get the download URL
-      uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
-        console.log('File available at', downloadURL);
-      });
-    });
-
-    // block submit while uploading
-    // later when confirm move from queue to source db path  // this triggers the function
-    // show progress to user
-    // user is able to cancel
-    // can have multiple in parallel
-   
-    this.setState({form: newFormState});
-  }*/
 
   handleImageDelete(id) {
     const newFormState = this.state.form.updateIn(['removedImageIds'], set => set.add(id));
