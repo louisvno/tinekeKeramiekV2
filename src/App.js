@@ -8,6 +8,7 @@ import Map, { fromJS, List,Set, toJS } from "immutable"
 import "firebase/auth";
 import "firebase/database";
 import "firebase/storage";
+import { merge } from 'rxjs';
 
 class App extends Component {
   constructor(props){
@@ -18,7 +19,11 @@ class App extends Component {
       selectedItemThumbs: null,
       form:null,
       selectedPost: null,
-      uploadsPending: [],
+      imgUploadStates: [],
+      m: null,
+      running: Set(),
+      complete: null,
+      canSubmit: true,
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -63,7 +68,7 @@ class App extends Component {
           }
           {this.addImageInputs()}
           <button type="button">Annuleren</button>
-          <button type="submit" >Opslaan</button>
+          <button type="submit" disabled={!this.state.canSubmit}>Opslaan</button>
         </form>
           :<div></div>}
       </div>
@@ -71,7 +76,29 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.getAllPosts()
+    this.getAllPosts();
+  }
+
+  handleI(sub){
+    this.state.imgUploadStates.push(sub)
+    sub.subscribe((task)=>{
+      console.log(task)
+      this.setState({running: this.state.running.add(task.id)})
+      //unsubscribe when changing post
+      this.checkSubmitState()
+    }, (task) => {
+      this.setState({running: this.state.running.remove(task.id)})
+      this.checkSubmitState()
+    }
+    ,(task)=>{
+      this.setState({running: this.state.running.remove(task.id)})
+      this.checkSubmitState()
+    })
+  }
+
+  checkSubmitState(){
+    this.setState({canSubmit:this.state.running.size === 0 })
+    console.log(this.state.canSubmit)
   }
 
   addImageInputs(){
@@ -82,13 +109,14 @@ class App extends Component {
       for (let index = 0; index < toGenerate; index++) {
         inputs.push(
           <ImgUpload 
-          strokeLinecap='butt' 
           key={index} 
           postId={this.state.form.get('id')}
+          onUploadStateChange = {this.handleI.bind(this)}
           />
         )
       }
     }
+    
     return inputs;
   }
 
