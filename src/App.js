@@ -82,7 +82,6 @@ class App extends Component {
   handleI(sub){
     this.state.imgUploadStates.push(sub)
     sub.subscribe((task)=>{
-      console.log(task)
       this.setState({running: this.state.running.add(task.id)})
       //unsubscribe when changing post
       this.checkSubmitState()
@@ -140,6 +139,8 @@ class App extends Component {
       //  .then(()=> console.log("this.loading = false"));
     //update database with post updates and 
     //firebase.database().ref().update(dbUpdates);
+
+    // TODO firebase move uploaded and confirmed imgs from queue to sourcepath
   }
 
   onItemSelect(id){

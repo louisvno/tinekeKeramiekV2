@@ -16,6 +16,7 @@ class ImgUpload extends Component {
         queueRef: null
       }
       this.handleCancel = this.handleCancel.bind(this);
+      this.fileInput = React.createRef();
     }
 
     //remove after complete
@@ -37,10 +38,9 @@ class ImgUpload extends Component {
         // clear progress
         this.setState(
           {progress: 0,
-          taskState: null,
-          task: null,
-          imgUploadTaskState: new Subject()})
-        // clear img input
+          })
+        // clear img input only works for IE 11+
+        this.fileInput.current.value = null;
       }
     }
 
@@ -48,10 +48,7 @@ class ImgUpload extends Component {
       if(this.state.task){
         // clear progress
         this.setState(
-          {progress: 0,
-          taskState: null,
-          task: null,
-          imgUploadTaskState: new Subject()})
+          {progress: 0})
       }
     }
 
@@ -65,8 +62,14 @@ class ImgUpload extends Component {
     }
     
     handleImageAdd(event) {
+      if(this.state.imgUploadTaskState.isStopped) {
+        let sub = new Subject();
+        this.setState({imgUploadTaskState : sub})
+        this.props.uploadTaskListener(sub);
+      } 
+      else this.props.uploadTaskListener(this.state.imgUploadTaskState);
+
       // start notifying observers
-      this.props.uploadTaskListener(this.state.imgUploadTaskState);
       const img = event.target.files[0];
 
       // get an image id from the DB and set in queue
@@ -87,19 +90,23 @@ class ImgUpload extends Component {
           // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
           let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           this.setState({progress:progress});
-          this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state})
+          this.onUploadStateChange({
+            id: imgId, 
+            state: uploadTask.snapshot.state
+          })
         }, (error) =>{
           this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, error:error})
           this.state.imgUploadTaskState.error({id: imgId, state: uploadTask.snapshot.state, error:error})
         }, () => {
-          //on complete
-          this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:storageRef.fullPath})
-      
+          //on complete      
           queueRef.child(imgId).set({
             path: storageRef.fullPath,
             timeCreated: new Date()
           }).then(
-            ()=> this.state.imgUploadTaskState.complete()
+            ()=> {
+              this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:storageRef.fullPath})
+              this.state.imgUploadTaskState.complete()
+            }
           ).catch(error => 
             this.state.imgUploadTaskState.error(
               {id: imgId, 
@@ -112,7 +119,7 @@ class ImgUpload extends Component {
     render() {
       return (
         <div>
-          <input type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
+          <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
           <Line percent={this.state.progress} strokeWidth="1" strokeColor="#12757d" />
           {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button onClick={this.handleCancel}>Cancel</button> :''}
           {this.state.taskState === firebase.storage.TaskState.SUCCESS ? <button onClick={this.handleRemove}>Remove</button> :''}
