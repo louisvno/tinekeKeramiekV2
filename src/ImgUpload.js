@@ -12,18 +12,51 @@ class ImgUpload extends Component {
         progress: 0,
         taskState: null,
         task: null,
-        imgUploadTaskState: new Subject()
+        imgUploadTaskState: new Subject(),
+        queueRef: null
       }
       this.handleCancel = this.handleCancel.bind(this);
     }
 
+    //remove after complete
+    handleRemove(){
+      // remove from DB quueueu then
+      this.state.queueRef.remove();
+      this.setState(
+        {progress: 0,
+        taskState: null,
+        task: null,
+        imgUploadTaskState: new Subject()})
+              
+    }
+
+    // cancel while in progress
     handleCancel(e){
-      this.state.task.cancel();
+      if(this.state.task){
+        this.state.task.cancel();
+        // clear progress
+        this.setState(
+          {progress: 0,
+          taskState: null,
+          task: null,
+          imgUploadTaskState: new Subject()})
+        // clear img input
+      }
+    }
+
+    handleError(e){
+      if(this.state.task){
+        // clear progress
+        this.setState(
+          {progress: 0,
+          taskState: null,
+          task: null,
+          imgUploadTaskState: new Subject()})
+      }
     }
 
     onUploadStateChange(e){
       this.setState({taskState : e.state})
-      //this.props.onUploadStateChange(e);
       this.state.imgUploadTaskState.next(e)
     }
 
@@ -32,24 +65,23 @@ class ImgUpload extends Component {
     }
     
     handleImageAdd(event) {
-      this.props.onUploadStateChange(this.state.imgUploadTaskState);
-      const img = event.target.files[0]
-      //const newFormState = this.state.form.updateIn(['newImages'], list => list.push(img));
+      // start notifying observers
+      this.props.uploadTaskListener(this.state.imgUploadTaskState);
+      const img = event.target.files[0];
+
       // get an image id from the DB and set in queue
-      // move part below outside
       const queueRef = firebase.database().ref('test_imageQueue/'+ this.props.postId);
       const imgId = queueRef.push().key;
-      /*
-      queueRef.child(imgId).set({
-        path: storageRef.fullPath,
-        timeCreated: new Date()
-      })*/
+
       // upload to storage using this id
       const storageRef = this.getStorageRef(this.props.postId + "/"+ imgId, img.name);
       const uploadTask = storageRef.put(img);
-      this.setState({task: uploadTask})
-      //monitor upload process
+      this.setState({
+        task: uploadTask,
+        queueRef: queueRef
+      })
       
+      //monitor upload process
       uploadTask.on(firebase.storage.TaskEvent.STATE_CHANGED, // or 'state_changed'
         (snapshot) => {
           // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
@@ -60,16 +92,21 @@ class ImgUpload extends Component {
           this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, error:error})
           this.state.imgUploadTaskState.error({id: imgId, state: uploadTask.snapshot.state, error:error})
         }, () => {
+          //on complete
           this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:storageRef.fullPath})
-          this.state.imgUploadTaskState.complete({id: imgId, state: uploadTask.snapshot.state, path:storageRef.fullPath});
+      
+          queueRef.child(imgId).set({
+            path: storageRef.fullPath,
+            timeCreated: new Date()
+          }).then(
+            ()=> this.state.imgUploadTaskState.complete()
+          ).catch(error => 
+            this.state.imgUploadTaskState.error(
+              {id: imgId, 
+              state: uploadTask.snapshot.state, 
+              error:error})
+          );
         });
-    
-      // block submit while uploading
-      // later when confirm move from queue to source db path  // this triggers the function
-      // user is able to remove -> remove from queue
-      // can have multiple in parallel
-     
-      //this.setState({form: newFormState});
     }
   
     render() {
@@ -78,6 +115,7 @@ class ImgUpload extends Component {
           <input type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
           <Line percent={this.state.progress} strokeWidth="1" strokeColor="#12757d" />
           {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button onClick={this.handleCancel}>Cancel</button> :''}
+          {this.state.taskState === firebase.storage.TaskState.SUCCESS ? <button onClick={this.handleRemove}>Remove</button> :''}
         </div>
       );
     }  

@@ -111,7 +111,7 @@ class App extends Component {
           <ImgUpload 
           key={index} 
           postId={this.state.form.get('id')}
-          onUploadStateChange = {this.handleI.bind(this)}
+          uploadTaskListener = {this.handleI.bind(this)}
           />
         )
       }
