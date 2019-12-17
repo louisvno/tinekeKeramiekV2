@@ -3,7 +3,7 @@ import './App.css';
 import firebase from "firebase/app";
 import PostList from "./List"
 import ImgUpload from "./ImgUpload"
-import Map, { fromJS, List,Set, toJS } from "immutable"
+import { fromJS, List,Set, toJS, Map } from "immutable"
 
 import "firebase/auth";
 import "firebase/database";
@@ -23,7 +23,7 @@ class App extends Component {
       imgUploadStates: [],
       m: null,
       running: Set(),
-      complete: Set(),
+      complete: Map(),
       canSubmit: true,
     };
 
@@ -93,7 +93,7 @@ class App extends Component {
         .forEach(([k,v]) => {
           this.setState({
             running: this.state.running.remove(k),
-            complete: this.state.complete.add(v)
+            complete: this.state.complete.set(k,v)
           })
           this.checkSubmitState()
         });
@@ -150,12 +150,16 @@ class App extends Component {
 
   handleSubmit(event){
     event.preventDefault();
-    //const dbUpdates = this.mapFormToDBUpdates(this.state.form);
-    //update database with post updates and 
-    //firebase.database().ref().update(dbUpdates);
+    const dbUpdates = this.mapFormToDBUpdates(this.state.form);
 
-    // TODO firebase move uploaded and confirmed imgs from queue to sourcepath
-    console.log(this.state.complete)
+    //update statement with uploaded imgs update statements queue to sourcepath
+    this.state.complete.mapEntries(([k,v]) => 
+    {dbUpdates[process.env.REACT_APP_sourcePath + 
+      this.state.form.get('id') + "/" + k] = v})
+
+    // do update
+    firebase.database().ref().update(dbUpdates);
+
   }
 
   onItemSelect(id){
@@ -193,7 +197,7 @@ class App extends Component {
     const imgDeletes = form.get('removedImageIds');
     const dbUpdateStatement = this.getPostUpdateStatement(form);
     const imgDeleteStatements = imgDeletes.map(imgId => this.getDeleteImageStatements(imgId, this.state.form.get('id')));
-    const imgsAddedStatements=null; //TODO generate from completed set
+
     imgDeleteStatements.forEach(statement =>{
       Object.entries(statement).forEach(([k,v]) => {
         dbUpdateStatement[k] = v;
@@ -291,7 +295,7 @@ class App extends Component {
     //delete x1000
     update[process.env.REACT_APP_imgx1000path + postId + "/" + imgId]= null;
     //delete source
-    update[process.env.REACT_APP_sourcepath + postId + "/" + imgId]= null;
+    update[process.env.REACT_APP_sourcePath + postId + "/" + imgId]= null;
 
     return update;
   }
