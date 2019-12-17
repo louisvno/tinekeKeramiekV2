@@ -8,7 +8,8 @@ import Map, { fromJS, List,Set, toJS } from "immutable"
 import "firebase/auth";
 import "firebase/database";
 import "firebase/storage";
-import { merge } from 'rxjs';
+import { Observable,} from 'rxjs';
+import { take, skip, distinctUntilKeyChanged } from 'rxjs/operators';
 
 class App extends Component {
   constructor(props){
@@ -22,7 +23,7 @@ class App extends Component {
       imgUploadStates: [],
       m: null,
       running: Set(),
-      complete: null,
+      complete: Set(),
       canSubmit: true,
     };
 
@@ -79,25 +80,41 @@ class App extends Component {
     this.getAllPosts();
   }
 
-  handleI(sub){
+  handleImgUploadTask(sub){
     this.state.imgUploadStates.push(sub)
-    sub.subscribe((task)=>{
-      this.setState({running: this.state.running.add(task.id)})
-      //unsubscribe when changing post
-      this.checkSubmitState()
+
+    new Observable((subscriber)=>{
+      firebase.database().ref('test_imageQueue/'+ this.state.form.get('id')).on('value',(snapshot)=>{
+          subscriber.next(snapshot.val())        
+      })
+    }).pipe(skip(1),take(1)).subscribe(res=>{
+      Object.entries(res)
+        .filter(([k,v]) => this.state.running.contains(k))
+        .forEach(([k,v]) => {
+          this.setState({
+            running: this.state.running.remove(k),
+            complete: this.state.complete.add(v)
+          })
+          this.checkSubmitState()
+        });
+    })
+
+    sub.pipe(distinctUntilKeyChanged('state')).subscribe((task)=>{
+      if(task.state === 'running'){
+        this.setState({running: this.state.running.add(task.id)})
+        // TODO unsubscribe when changing post
+        this.checkSubmitState()
+      }
     }, (task) => {
       this.setState({running: this.state.running.remove(task.id)})
       this.checkSubmitState()
     }
-    ,(task)=>{
-      this.setState({running: this.state.running.remove(task.id)})
-      this.checkSubmitState()
+    ,()=>{
     })
   }
 
   checkSubmitState(){
     this.setState({canSubmit:this.state.running.size === 0 })
-    console.log(this.state.canSubmit)
   }
 
   addImageInputs(){
@@ -110,7 +127,7 @@ class App extends Component {
           <ImgUpload 
           key={index} 
           postId={this.state.form.get('id')}
-          uploadTaskListener = {this.handleI.bind(this)}
+          uploadTaskListener = {this.handleImgUploadTask.bind(this)}
           />
         )
       }
@@ -134,13 +151,11 @@ class App extends Component {
   handleSubmit(event){
     event.preventDefault();
     //const dbUpdates = this.mapFormToDBUpdates(this.state.form);
-    //upload any new imgs
-    //this.addNewImages(this.state.form)
-      //  .then(()=> console.log("this.loading = false"));
     //update database with post updates and 
     //firebase.database().ref().update(dbUpdates);
 
     // TODO firebase move uploaded and confirmed imgs from queue to sourcepath
+    console.log(this.state.complete)
   }
 
   onItemSelect(id){
@@ -178,7 +193,7 @@ class App extends Component {
     const imgDeletes = form.get('removedImageIds');
     const dbUpdateStatement = this.getPostUpdateStatement(form);
     const imgDeleteStatements = imgDeletes.map(imgId => this.getDeleteImageStatements(imgId, this.state.form.get('id')));
-    
+    const imgsAddedStatements=null; //TODO generate from completed set
     imgDeleteStatements.forEach(statement =>{
       Object.entries(statement).forEach(([k,v]) => {
         dbUpdateStatement[k] = v;
