@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
-import firebase from "firebase/app";
+import firebase, { SDK_VERSION } from "firebase/app";
 import PostList from "./List"
 import ImgUpload from "./ImgUpload"
 import { fromJS, List,Set, toJS, Map } from "immutable"
@@ -150,16 +150,24 @@ class App extends Component {
 
   handleSubmit(event){
     event.preventDefault();
+    // update to title/ category /text/ removed imgs
     const dbUpdates = this.mapFormToDBUpdates(this.state.form);
 
     //update statement with uploaded imgs update statements queue to sourcepath
+    // add to sourcepath to trigger img generate
     this.state.complete.mapEntries(([k,v]) => 
     {dbUpdates[process.env.REACT_APP_sourcePath + 
       this.state.form.get('id') + "/" + k] = v})
+    //remove from queue
+    this.state.complete.mapEntries(([k,v]) => 
+    {dbUpdates[ 'test_imageQueue/'+ 
+      this.state.form.get('id') + "/" + k] = null})
 
     // do update
     firebase.database().ref().update(dbUpdates);
-
+    
+    this.getPostById(this.state.form.get('id'))
+    this.getThumbsByPostId(this.state.form.get('id'))
   }
 
   onItemSelect(id){
@@ -178,6 +186,24 @@ class App extends Component {
     
     this.setState({form: formModel});
     this.getThumbsByPostId(id);
+
+    // start listening to thumb paths 
+    firebase.database().ref(process.env.REACT_APP_thumbsPath + 
+      id).on("child_added",(snapshot)=>{
+
+        //check if all completed are included
+        let itemsProcessing = this.state.complete.toArray().
+          filter(([key,v]) =>{
+            !snapshot.val().hasOwnProperty(key);
+          })
+        if(itemsProcessing.length === 0) {
+          this.setState({
+            complete: Map(),
+            selectedItemThumbs: null
+          })
+          this.getThumbsByPostId(id)   
+        }
+      })
   }
 
   getThumbsByPostId(id) {
