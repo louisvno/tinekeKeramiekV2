@@ -3,7 +3,10 @@ import firebase from "firebase/app";
 import "firebase/database";
 import "firebase/storage";
 import { Line } from 'rc-progress';
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
+import { filter, first, take } from 'rxjs/operators';
+
+
 
 class ImgUpload extends Component {
     constructor(props) {
@@ -13,7 +16,7 @@ class ImgUpload extends Component {
         taskState: null,
         task: null,
         imgUploadTaskState: new Subject(),
-        queueRef: null
+        thumbnailUrl: null
       }
       this.handleCancel = this.handleCancel.bind(this);
       this.fileInput = React.createRef();
@@ -98,28 +101,37 @@ class ImgUpload extends Component {
           this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, error:error})
           this.state.imgUploadTaskState.error({id: imgId, state: uploadTask.snapshot.state, error:error})
         }, () => {
-          //on complete      
-          queueRef.child(imgId).set({
-            path: storageRef.fullPath,
-            timeCreated: new Date()
-          }).then(
-            ()=> {
-              this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:storageRef.fullPath})
-              this.state.imgUploadTaskState.complete()
-            }
-          ).catch(error => 
-            this.state.imgUploadTaskState.error(
-              {id: imgId, 
-              state: uploadTask.snapshot.state, 
-              error:error})
-          );
+          // on complete  
+          // definition of complete: when the db temp_folders are updated by the function
+          const waitForThumbnail =new Observable((sub)=>{
+            const ref = firebase.database().ref("temp_test_thumbnails/" + this.props.postId);
+            ref.on("value",(snapshot)=>{
+               sub.next(snapshot.val()) 
+               if (snapshot.val().hasOwnProperty(imgId)){
+                 ref.off()
+                 sub.complete()    
+               }
+            })
+          })
+
+          waitForThumbnail
+          .pipe(
+            filter(res => res.hasOwnProperty(imgId)),
+          )
+          .subscribe((res)=>{
+            this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:res.fullPath});
+            this.setState({thumbnailUrl: res[imgId].downloadUrl})
+            this.state.imgUploadTaskState.complete();
+          })
         });
     }
   
     render() {
       return (
         <div>
-          <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
+          {this.state.thumbnailUrl? <img src={this.state.thumbnailUrl}></img> : 
+          <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>}
+          
           <Line percent={this.state.progress} strokeWidth="1" strokeColor="#12757d" />
           {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button onClick={this.handleCancel}>Cancel</button> :''}
           {this.state.taskState === firebase.storage.TaskState.SUCCESS ? <button onClick={this.handleRemove}>Remove</button> :''}

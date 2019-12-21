@@ -8,7 +8,6 @@ import { fromJS, List,Set, toJS, Map } from "immutable"
 import "firebase/auth";
 import "firebase/database";
 import "firebase/storage";
-import { Observable,} from 'rxjs';
 import { take, skip, distinctUntilKeyChanged } from 'rxjs/operators';
 
 class App extends Component {
@@ -20,10 +19,9 @@ class App extends Component {
       selectedItemThumbs: null,
       form:null,
       selectedPost: null,
-      imgUploadStates: [],
       m: null,
       running: Set(),
-      complete: Map(),
+      complete: Set(),
       canSubmit: true,
     };
 
@@ -81,28 +79,17 @@ class App extends Component {
   }
 
   handleImgUploadTask(sub){
-    this.state.imgUploadStates.push(sub)
-
-    new Observable((subscriber)=>{
-      firebase.database().ref('test_imageQueue/'+ this.state.form.get('id')).on('value',(snapshot)=>{
-          subscriber.next(snapshot.val())        
-      })
-    }).pipe(skip(1),take(1)).subscribe(res=>{
-      Object.entries(res)
-        .filter(([k,v]) => this.state.running.contains(k))
-        .forEach(([k,v]) => {
-          this.setState({
-            running: this.state.running.remove(k),
-            complete: this.state.complete.set(k,v)
-          })
-          this.checkSubmitState()
-        });
-    })
-
     sub.pipe(distinctUntilKeyChanged('state')).subscribe((task)=>{
       if(task.state === 'running'){
         this.setState({running: this.state.running.add(task.id)})
         // TODO unsubscribe when changing post
+        this.checkSubmitState()
+      }
+
+      if(task.state === 'success'){
+        this.setState({running: this.state.running.remove(task.id),
+          complete: this.state.complete.add(task.id)
+        })
         this.checkSubmitState()
       }
     }, (task) => {
@@ -153,21 +140,36 @@ class App extends Component {
     // update to title/ category /text/ removed imgs
     const dbUpdates = this.mapFormToDBUpdates(this.state.form);
 
-    //update statement with uploaded imgs update statements queue to sourcepath
-    // add to sourcepath to trigger img generate
-    this.state.complete.mapEntries(([k,v]) => 
-    {dbUpdates[process.env.REACT_APP_sourcePath + 
-      this.state.form.get('id') + "/" + k] = v})
-    //remove from queue
-    this.state.complete.mapEntries(([k,v]) => 
-    {dbUpdates[ 'test_imageQueue/'+ 
-      this.state.form.get('id') + "/" + k] = null})
-
+    // retrieve all temp paths and get img ids
+    
+    //remove from temp
+    /*this.state.complete.mapEntries(([k,v]) => 
+    {dbUpdates[ 'temp_/'+ 
+      this.state.form.get('id') + "/" + k] = null})*/
+    this.mapImgUpdates().then((res)=>{
+   console.log(res)
     // do update
+    console.log(dbUpdates)
     firebase.database().ref().update(dbUpdates);
     
     this.getPostById(this.state.form.get('id'))
     this.getThumbsByPostId(this.state.form.get('id'))
+    }
+    
+    )
+ 
+  }
+
+  mapImgUpdates(){
+    return new Promise((resolve)=>{
+      console.log(this.state.complete)
+      const values = {}
+      this.state.complete.keys((k) => 
+            values['test_thumbnails' + this.state.form.get('id') + "/" + k] = firebase.database().ref('temp_test_thumbnails/'+ this.state.form.get('id') + k).once()
+              .then((snap) => snap.val()))
+              console.log(values)
+      Promise.all(Object.values(values)).then(()=> resolve(values))
+    })
   }
 
   onItemSelect(id){
@@ -186,24 +188,6 @@ class App extends Component {
     
     this.setState({form: formModel});
     this.getThumbsByPostId(id);
-
-    // start listening to thumb paths 
-    firebase.database().ref(process.env.REACT_APP_thumbsPath + 
-      id).on("child_added",(snapshot)=>{
-
-        //check if all completed are included
-        let itemsProcessing = this.state.complete.toArray().
-          filter(([key,v]) =>{
-            !snapshot.val().hasOwnProperty(key);
-          })
-        if(itemsProcessing.length === 0) {
-          this.setState({
-            complete: Map(),
-            selectedItemThumbs: null
-          })
-          this.getThumbsByPostId(id)   
-        }
-      })
   }
 
   getThumbsByPostId(id) {
