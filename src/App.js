@@ -140,28 +140,26 @@ class App extends Component {
     // update to title/ category /text/ removed imgs
     const dbUpdates = this.mapFormToDBUpdates(this.state.form);
 
-    // retrieve all temp paths and get img ids
-    
-    //remove from temp
-    /*this.state.complete.mapEntries(([k,v]) => 
-    {dbUpdates[ 'temp_/'+ 
-      this.state.form.get('id') + "/" + k] = null})*/
-    this.mapCopyTempToRoot('/temp_test_thumbnails/', '/test_thumbnails/').then((res)=>{
-   console.log(res)
-    // do update
-    Object.entries(res).forEach(([k,v])=>{
-      dbUpdates[k] = v;
+    Promise.all(
+      [this.mapCopyTempToRoot('/temp_test_thumbnails/', process.env.REACT_APP_thumbsPath),
+      this.mapCopyTempToRoot('/temp_test_x500Imgs/', process.env.REACT_APP_imgx500path),
+      this.mapCopyTempToRoot('/temp_test_x1000Imgs/', process.env.REACT_APP_imgx1000path),
+      this.mapCopyTempToRoot('/temp_test_sourceImgs/', process.env.REACT_APP_sourcePath)]
+      )  
+    .then((res)=>{
+      // do update
+      res.forEach((items)=>{
+        Object.entries(items).forEach(([k,v])=>{
+          dbUpdates[k] = v;
+        })
+      })
+      console.info(dbUpdates)
+      return firebase.database().ref().update(dbUpdates);   
+    }).then(() =>{
+      this.getPostById(this.state.form.get('id'))
+      this.setState({selectedItemThumbs : null})
+      this.getThumbsByPostId(this.state.form.get('id'))
     })
-    console.log(dbUpdates)
-    firebase.database().ref().update(dbUpdates);
-    
-    this.getPostById(this.state.form.get('id'))
-    this.setState({selectedItemThumbs : null})
-    this.getThumbsByPostId(this.state.form.get('id'))
-    }
-    
-    )
- 
   }
   // create a statement to copy from temp to root and to remove from temp
   mapCopyTempToRoot(tempRoot, root){
