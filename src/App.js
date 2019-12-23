@@ -8,7 +8,7 @@ import { fromJS, List,Set, toJS, Map } from "immutable"
 import "firebase/auth";
 import "firebase/database";
 import "firebase/storage";
-import { take, skip, distinctUntilKeyChanged } from 'rxjs/operators';
+import { take, skip, distinctUntilKeyChanged, catchError } from 'rxjs/operators';
 
 class App extends Component {
   constructor(props){
@@ -66,12 +66,17 @@ class App extends Component {
             />: <div></div>
           }
           {this.addImageInputs()}
-          <button type="button">Annuleren</button>
+          <button type="button" onClick={this.undoChanges.bind(this)}>Annuleren</button>
           <button type="submit" disabled={!this.state.canSubmit}>Opslaan</button>
         </form>
           :<div></div>}
       </div>
     );
+  }
+
+  undoChanges(){
+    this.setState({selectedItemThumbs: null})
+    this.onItemSelect(this.state.selectedItem)
   }
 
   componentDidMount() {
@@ -140,6 +145,16 @@ class App extends Component {
     // update to title/ category /text/ removed imgs
     const dbUpdates = this.mapFormToDBUpdates(this.state.form);
 
+    const imgDeletes = this.state.form.get('removedImageIds');
+    const imgDeleteStatements = imgDeletes.map(imgId => this.getDeleteImageStatements(imgId, this.state.form.get('id')));
+
+    imgDeleteStatements.forEach(statement =>{
+      Object.entries(statement).forEach(([k,v]) => {
+        dbUpdates[k] = v;
+      })
+    })
+
+    //img adds
     Promise.all(
       [this.mapCopyTempToRoot('/temp_test_thumbnails/', process.env.REACT_APP_thumbsPath),
       this.mapCopyTempToRoot('/temp_test_x500Imgs/', process.env.REACT_APP_imgx500path),
@@ -161,6 +176,7 @@ class App extends Component {
       this.getThumbsByPostId(this.state.form.get('id'))
     })
   }
+
   // create a statement to copy from temp to root and to remove from temp
   mapCopyTempToRoot(tempRoot, root){
     return new Promise(resolve =>{
@@ -182,9 +198,6 @@ class App extends Component {
 
   onItemSelect(id){
     const post = this.state.items[id];
-    this.setState({selectedItem: id})
-    this.setState({selectedPost: this.state.items[id]})
-
     const formModel = fromJS({
       id: id,
       text: post.text,
@@ -194,7 +207,14 @@ class App extends Component {
       removedImageIds: Set()
     })
     
-    this.setState({form: formModel});
+    this.setState(
+      {selectedItem: id,
+       selectedPost: this.state.items[id],
+       running: Set(),
+       complete: Set(),
+       form: formModel
+    })
+
     this.getThumbsByPostId(id);
   }
 
@@ -212,16 +232,7 @@ class App extends Component {
   }
 
   mapFormToDBUpdates(form){
-    const imgDeletes = form.get('removedImageIds');
     const dbUpdateStatement = this.getPostUpdateStatement(form);
-    const imgDeleteStatements = imgDeletes.map(imgId => this.getDeleteImageStatements(imgId, this.state.form.get('id')));
-
-    imgDeleteStatements.forEach(statement =>{
-      Object.entries(statement).forEach(([k,v]) => {
-        dbUpdateStatement[k] = v;
-      })
-    })
-
     return dbUpdateStatement;
   }
 

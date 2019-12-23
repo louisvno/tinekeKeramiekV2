@@ -4,7 +4,7 @@ import "firebase/database";
 import "firebase/storage";
 import { Line } from 'rc-progress';
 import { Subject, Observable } from 'rxjs';
-import { filter, first, take } from 'rxjs/operators';
+import { filter} from 'rxjs/operators';
 
 
 
@@ -19,40 +19,35 @@ class ImgUpload extends Component {
         thumbnailUrl: null
       }
       this.handleCancel = this.handleCancel.bind(this);
+      this.handleRemove = this.handleRemove.bind(this);
       this.fileInput = React.createRef();
     }
 
     //remove after complete
-    handleRemove(){
-      // remove from DB quueueu then
-      this.state.queueRef.remove();
-      this.setState(
-        {progress: 0,
-        taskState: null,
-        task: null,
-        imgUploadTaskState: new Subject()})
-              
+    handleRemove(e){
+      e.preventDefault();
+      this.resetState();              
     }
 
     // cancel while in progress
     handleCancel(e){
+      e.preventDefault();
       if(this.state.task){
         this.state.task.cancel();
-        // clear progress
-        this.setState(
-          {progress: 0,
-          })
-        // clear img input only works for IE 11+
-        this.fileInput.current.value = null;
       }
     }
 
-    handleError(e){
-      if(this.state.task){
-        // clear progress
-        this.setState(
-          {progress: 0})
-      }
+    resetState(){
+      // clear progress
+      this.setState({
+        progress: 0,
+        taskState: null,
+        task: null,
+        imgUploadTaskState: new Subject(),
+        thumbnailUrl: null
+      })
+      // clear img input only works for IE 11+
+      this.fileInput.current.value = null;
     }
 
     onUploadStateChange(e){
@@ -84,13 +79,12 @@ class ImgUpload extends Component {
       const uploadTask = storageRef.put(img);
       this.setState({
         task: uploadTask,
-        queueRef: queueRef
       })
       
       //monitor upload process
       uploadTask.on(firebase.storage.TaskEvent.STATE_CHANGED, // or 'state_changed'
         (snapshot) => {
-          // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+          // running
           let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           this.setState({progress:progress});
           this.onUploadStateChange({
@@ -98,31 +92,34 @@ class ImgUpload extends Component {
             state: uploadTask.snapshot.state
           })
         }, (error) =>{
-          this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, error:error})
+          // canceled
+          console.warn(error)
           this.state.imgUploadTaskState.error({id: imgId, state: uploadTask.snapshot.state, error:error})
+          this.resetState();
         }, () => {
-          // on complete  
+          // complete  
           // definition of complete: when the db temp_folders are updated by the function
-          const waitForThumbnail =new Observable((sub)=>{
-            const ref = firebase.database().ref("temp_test_thumbnails/" + this.props.postId);
-            ref.on("value",(snapshot)=>{
-               sub.next(snapshot.val()) 
-               if (snapshot.val().hasOwnProperty(imgId)){
-                 ref.off()
-                 sub.complete()    
-               }
-            })
-          })
+          const waitForThumbnail =
+            new Observable((sub)=>{
+              const ref = firebase.database().ref("temp_test_thumbnails/" + this.props.postId);
+              ref.on("value",(snapshot)=>{
+                sub.next(snapshot.val()) 
+                if (snapshot.val().hasOwnProperty(imgId)){
+                  ref.off()
+                  sub.complete()    
+                }
+              })
+            });
 
           waitForThumbnail
-          .pipe(
-            filter(res => res.hasOwnProperty(imgId)),
-          )
-          .subscribe((res)=>{
-            this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:res.fullPath});
-            this.setState({thumbnailUrl: res[imgId].downloadUrl})
-            this.state.imgUploadTaskState.complete();
-          })
+            .pipe(
+              filter(res => res.hasOwnProperty(imgId)),
+            )
+            .subscribe((res)=>{
+              this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:res.fullPath});
+              this.setState({thumbnailUrl: res[imgId].downloadUrl})
+              this.state.imgUploadTaskState.complete();
+            })
         });
     }
   
@@ -133,8 +130,8 @@ class ImgUpload extends Component {
           <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>}
           
           <Line percent={this.state.progress} strokeWidth="1" strokeColor="#12757d" />
-          {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button onClick={this.handleCancel}>Cancel</button> :''}
-          {this.state.taskState === firebase.storage.TaskState.SUCCESS ? <button onClick={this.handleRemove}>Remove</button> :''}
+          {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button type="button" onClick={this.handleCancel}>Cancel</button> :''}
+          {this.state.taskState === firebase.storage.TaskState.SUCCESS ? <button type="button" onClick={this.handleRemove}>Remove</button> :''}
         </div>
       );
     }  
