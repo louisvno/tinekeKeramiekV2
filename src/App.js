@@ -146,30 +146,40 @@ class App extends Component {
     /*this.state.complete.mapEntries(([k,v]) => 
     {dbUpdates[ 'temp_/'+ 
       this.state.form.get('id') + "/" + k] = null})*/
-    this.mapImgUpdates().then((res)=>{
+    this.mapCopyTempToRoot('/temp_test_thumbnails/', '/test_thumbnails/').then((res)=>{
    console.log(res)
     // do update
+    Object.entries(res).forEach(([k,v])=>{
+      dbUpdates[k] = v;
+    })
     console.log(dbUpdates)
     firebase.database().ref().update(dbUpdates);
     
     this.getPostById(this.state.form.get('id'))
+    this.setState({selectedItemThumbs : null})
     this.getThumbsByPostId(this.state.form.get('id'))
     }
     
     )
  
   }
+  // create a statement to copy from temp to root and to remove from temp
+  mapCopyTempToRoot(tempRoot, root){
+    return new Promise(resolve =>{
+      const obj ={};
+      this.getImgsByPostKey(tempRoot, this.state.form.get('id')).then(
+        (res) => {
+          this.state.complete
+          .filter(id => res.val().hasOwnProperty(id))
+          .forEach(id => {
+            obj[root + this.state.form.get('id') + '/' + id] = res.val()[id];
+            obj[tempRoot + this.state.form.get('id') + '/' + id] = null;
+          })
 
-  mapImgUpdates(){
-    return new Promise((resolve)=>{
-      console.log(this.state.complete)
-      const values = {}
-      this.state.complete.keys((k) => 
-            values['test_thumbnails' + this.state.form.get('id') + "/" + k] = firebase.database().ref('temp_test_thumbnails/'+ this.state.form.get('id') + k).once()
-              .then((snap) => snap.val()))
-              console.log(values)
-      Promise.all(Object.values(values)).then(()=> resolve(values))
-    })
+          resolve(obj)
+        }
+      )
+    })  
   }
 
   onItemSelect(id){
