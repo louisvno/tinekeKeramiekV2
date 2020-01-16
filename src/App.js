@@ -115,7 +115,7 @@ class App extends Component {
         this.checkSubmitState()
       }
 
-      if(task.state === 'success'){
+      if(task.state === 'complete'){
         this.setState({running: this.state.running.remove(task.id),
           complete: this.state.complete.add(task.id)
         })

@@ -116,7 +116,7 @@ class ImgUpload extends Component {
               filter(res => res.hasOwnProperty(imgId)),
             )
             .subscribe((res)=>{
-              this.onUploadStateChange({id: imgId, state: uploadTask.snapshot.state, path:res.fullPath});
+              this.onUploadStateChange({id: imgId, state: 'complete', path:res.fullPath});
               this.setState({thumbnailUrl: res[imgId].downloadUrl})
               this.state.imgUploadTaskState.complete();
             })
