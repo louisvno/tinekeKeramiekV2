@@ -1,4 +1,7 @@
 import React from 'react';
+import Button from '@material-ui/core/Button';
+import './List.css'
+import { sizing, flexbox } from '@material-ui/system';
 // TODO add thumbnails
 /**
  * {
@@ -15,6 +18,21 @@ import React from 'react';
  * 
  * Buttons are added to each list item
  */
+const liStyle = {
+  "list-style-type": 'none',
+  height: 'auto',
+  display: 'flex',
+  flexDirection: 'column'
+}
+const aStyle = {
+  padding: '6px 12px 6px 12px',
+  display: 'inline-block',
+  boxSizing: 'border-box'
+}
+const ulStyle = {
+  padding: '0px',
+}
+
 function ListItem(props) {
     function handleClick(e) {
         e.preventDefault();
@@ -27,17 +45,24 @@ function ListItem(props) {
       }
     }
     const buttons = [];
+    let content;
 
     if(props.buttons && props.buttons.length !== 0){
         for (let index = 0; index < props.buttons.length; index++) {
-          buttons.push(<button key={props.buttons[index].label} 
+          buttons.push(<Button key={props.buttons[index].label} 
             onClick={handlebuttonClick(index)}>
             {props.buttons[index].label}
-          </button>)          
+          </Button>)          
         }
     };
 
-    return <li><img src={props.item.downloadUrl}/><a href="#" onClick={handleClick}>{props.item.title}</a>{buttons}</li> ;
+    if(props.item.downloadUrl) content = <img src={props.item.downloadUrl}/>;
+    if(props.item.title) content = <a style={aStyle} href="#" onClick={handleClick}>{props.item.title}</a>;
+
+    return <li style={liStyle}>
+      {content}
+      {buttons}
+    </li> ;
 }
 
 function PostList(props) {
@@ -48,11 +73,13 @@ function PostList(props) {
               item={props.items[id]} 
               buttons = {props.buttons}
               buttonEvents= {props.buttonEvents}
-              onItemSelect= {props.onItemSelect}/>
+              onItemSelect= {props.onItemSelect}
+              />
   );
  
   return (
-    <ul>
+    <ul style={ulStyle} class= {props.horizontal}
+    >
       {listItems}
     </ul>
   );

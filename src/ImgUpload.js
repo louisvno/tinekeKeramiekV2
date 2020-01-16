@@ -127,7 +127,11 @@ class ImgUpload extends Component {
       return (
         <div>
           {this.state.thumbnailUrl? <img src={this.state.thumbnailUrl}></img> : 
-          <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>}
+          <div>
+          <span>Afbeelding toevoegen: </span>
+          <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
+          </div>
+          }
           
           <Line percent={this.state.progress} strokeWidth="1" strokeColor="#12757d" />
           {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button type="button" onClick={this.handleCancel}>Cancel</button> :''}

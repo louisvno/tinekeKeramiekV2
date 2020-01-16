@@ -3,12 +3,15 @@ import './App.css';
 import firebase, { SDK_VERSION } from "firebase/app";
 import PostList from "./List"
 import ImgUpload from "./ImgUpload"
-import { fromJS, List,Set, toJS, Map } from "immutable"
+import { fromJS, List,Set } from "immutable"
 
 import "firebase/auth";
 import "firebase/database";
 import "firebase/storage";
-import { take, skip, distinctUntilKeyChanged, catchError } from 'rxjs/operators';
+import {distinctUntilKeyChanged} from 'rxjs/operators';
+import Button from '@material-ui/core/Button';
+import Drawer from '@material-ui/core/Drawer';
+
 
 class App extends Component {
   constructor(props){
@@ -32,44 +35,65 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-
-        {/*Post List*/}
-        {this.state.items === null ? <div></div>
-         :< PostList items={this.state.items} 
-          
-          onItemSelect={this.onItemSelect.bind(this)}
-         />}
-
+        <nav aria-label="mailbox folders">
+        {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
+          <Drawer
+            variant="persistent"
+            anchor="left"
+            open
+          >
+            <div id="list-container">
+            {this.state.items === null ? <div></div> :< PostList items={this.state.items} 
+              onItemSelect={this.onItemSelect.bind(this)}
+            />}
+            </div>
+          </Drawer>
+       </nav> 
+       <main>
         {/* Form */}
         {this.state.items !== null && this.state.selectedItem !== null && this.state.form !== null?  
          <form onSubmit={this.handleSubmit}>
-          <label>
-            Title:
-            <input type="text" value={this.state.form.get("title")} onChange={this.handlePostEdit("title")} />
-            <textarea value={this.state.form.get("text")} onChange={this.handlePostEdit("text")} />
-          </label>
-          <label>Categorie
-          <select name="post-category" id="post-category" 
-            value={this.state.form.get("category")} 
-            onChange={this.handlePostEdit("category")}>
-              <option value="default" disabled>Kies een categorie</option>
-              <option value="dierfiguren">Dierfiguren</option>
-              <option value="schalen">Schalen</option>
-              <option value="anderwerk">Ander werk</option>
-          </select>
-          </label>
+          <div id="title">
+            <label>
+              Title:
+              <input type="text" value={this.state.form.get("title")} onChange={this.handlePostEdit("title")} />
+            </label>
+          </div>
+          <div id="description">
+            <label>
+              Beschrijving:
+              <textarea value={this.state.form.get("text")} onChange={this.handlePostEdit("text")} />
+            </label>
+          </div>
+          <div id="category">
+            <label>Categorie:
+            <select name="post-category" id="post-category" 
+              value={this.state.form.get("category")} 
+              onChange={this.handlePostEdit("category")}>
+                <option value="default" disabled>Kies een categorie</option>
+                <option value="dierfiguren">Dierfiguren</option>
+                <option value="schalen">Schalen</option>
+                <option value="anderwerk">Ander werk</option>
+            </select>
+            </label>
+          </div>
+
           {this.state.selectedItemThumbs !== null?
             < PostList items={this.state.selectedItemThumbs} 
-            buttons={[{label:"delete"}]}
+            buttons={[{label:"verwijderen"}]}
             buttonEvents={[this.handleImageDelete.bind(this)]}
             onItemSelect={this.onItemSelect.bind(this)}
+            horizontal="horizontal"
             />: <div></div>
           }
           {this.addImageInputs()}
-          <button type="button" onClick={this.undoChanges.bind(this)}>Annuleren</button>
-          <button type="submit" disabled={!this.state.canSubmit}>Opslaan</button>
+          <footer>
+            <Button type="button" onClick={this.undoChanges.bind(this)}>Annuleren</Button>
+            <Button type="submit" disabled={!this.state.canSubmit}>Opslaan</Button>
+          </footer>
         </form>
           :<div></div>}
+        </main>
       </div>
     );
   }
