@@ -135,7 +135,7 @@ class ImgUpload extends Component {
           
           <Line percent={this.state.progress} strokeWidth="1" strokeColor="#12757d" />
           {this.state.taskState === firebase.storage.TaskState.RUNNING ? <button type="button" onClick={this.handleCancel}>Cancel</button> :''}
-          {this.state.taskState === firebase.storage.TaskState.SUCCESS ? <button type="button" onClick={this.handleRemove}>Remove</button> :''}
+          {this.state.taskState === 'complete' ? <button type="button" onClick={this.handleRemove}>Remove</button> :''}
         </div>
       );
     }  
