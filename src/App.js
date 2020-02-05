@@ -11,6 +11,7 @@ import "firebase/storage";
 import {distinctUntilKeyChanged} from 'rxjs/operators';
 import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
+//TODO add empty form to create
 
 
 class App extends Component {
@@ -111,7 +112,7 @@ class App extends Component {
     sub.pipe(distinctUntilKeyChanged('state')).subscribe((task)=>{
       if(task.state === 'running'){
         this.setState({running: this.state.running.add(task.id)})
-        // TODO unsubscribe when changing post
+        // TODO unsubscribe when changing post takeuntil
         this.checkSubmitState()
       }
 
