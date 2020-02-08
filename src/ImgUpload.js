@@ -43,11 +43,12 @@ class ImgUpload extends Component {
         progress: 0,
         taskState: null,
         task: null,
-        imgUploadTaskState: new Subject(),
         thumbnailUrl: null
       })
       // clear img input only works for IE 11+
-      this.fileInput.current.value = null;
+      if(this.fileInput.current){
+        this.fileInput.current.value = null;
+      }
     }
 
     onUploadStateChange(e){
@@ -99,21 +100,21 @@ class ImgUpload extends Component {
         }, () => {
           // complete  
           // definition of complete: when the db temp_folders are updated by the function
-          const waitForThumbnail =
+          const thumbnailResource =
             new Observable((sub)=>{
               const ref = firebase.database().ref("temp_test_thumbnails/" + this.props.postId);
               ref.on("value",(snapshot)=>{
                 sub.next(snapshot.val()) 
-                if (snapshot.val().hasOwnProperty(imgId)){
+                if (snapshot.val() && snapshot.val().hasOwnProperty(imgId)){
                   ref.off()
                   sub.complete()    
                 }
               })
             });
 
-          waitForThumbnail
+          thumbnailResource
             .pipe(
-              filter(res => res.hasOwnProperty(imgId)),
+              filter(res => res && res.hasOwnProperty(imgId)),
             )
             .subscribe((res)=>{
               this.onUploadStateChange({id: imgId, state: 'complete', path:res.fullPath});
