@@ -12,7 +12,10 @@ import {distinctUntilKeyChanged} from 'rxjs/operators';
 import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
 //TODO add empty form to create
-
+// TODO mark for delete
+// TODO on cancel empty the queue
+// TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
+// TODO remove hardcoded urls in imgUpload class
 
 class App extends Component {
   constructor(props){
@@ -27,6 +30,7 @@ class App extends Component {
       running: Set(),
       complete: Set(),
       canSubmit: true,
+      newPost: false
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -51,8 +55,11 @@ class App extends Component {
           </Drawer>
        </nav> 
        <main>
+       <Button id="new-post-btn" type="button" onClick={this.onPostCreate.bind(this)}>Nieuw</Button>
         {/* Form */}
-        {this.state.items !== null && this.state.selectedItem !== null && this.state.form !== null?  
+        {(this.state.items !== null &&
+          this.state.selectedItem !== null &&
+          this.state.form !== null) || this.state.newPost?  
          <form onSubmit={this.handleSubmit}>
           <div id="title">
             <label>
@@ -139,18 +146,18 @@ class App extends Component {
     if(this.state.selectedItemThumbs !== null && Object.keys(this.state.selectedItemThumbs).length < 4){
 
       const toGenerate = 4 - Object.keys(this.state.selectedItemThumbs).length;
-      for (let index = 0; index < toGenerate; index++) {
-        inputs.push(
-          <ImgUpload 
-          key={index} 
-          postId={this.state.form.get('id')}
-          uploadTaskListener = {this.handleImgUploadTask.bind(this)}
-          />
-        )
-      }
+      this.getInputs(toGenerate, inputs);
+    } else if(this.state.newPost){
+      this.getInputs(4,inputs);
     }
     
     return inputs;
+  }
+
+  getInputs(toGenerate, inputs) {
+    for (let index = 0; index < toGenerate; index++) {
+      inputs.push(<ImgUpload key={index} postId={this.state.form.get('id')} uploadTaskListener={this.handleImgUploadTask.bind(this)} />);
+    }
   }
 
   handlePostEdit(fieldName) {
@@ -168,23 +175,29 @@ class App extends Component {
   handleSubmit(event){
     event.preventDefault();
     // update to title/ category /text/ removed imgs
-    const dbUpdates = this.mapFormToDBUpdates(this.state.form);
+    const postId = this.state.form.get('id');
+
+    const dbUpdates = this.getPostUpdateStatement(this.state.form, postId); 
 
     const imgDeletes = this.state.form.get('removedImageIds');
-    const imgDeleteStatements = imgDeletes.map(imgId => this.getDeleteImageStatements(imgId, this.state.form.get('id')));
+    if(imgDeletes){
+    const imgDeleteStatements = imgDeletes.map(imgId => 
+      this.getDeleteImageStatements(imgId, postId)
+    );
 
     imgDeleteStatements.forEach(statement =>{
       Object.entries(statement).forEach(([k,v]) => {
         dbUpdates[k] = v;
       })
     })
+  }
 
     //img adds
     Promise.all(
-      [this.mapCopyTempToRoot('/temp_test_thumbnails/', process.env.REACT_APP_thumbsPath),
-      this.mapCopyTempToRoot('/temp_test_x500Imgs/', process.env.REACT_APP_imgx500path),
-      this.mapCopyTempToRoot('/temp_test_x1000Imgs/', process.env.REACT_APP_imgx1000path),
-      this.mapCopyTempToRoot('/temp_test_sourceImgs/', process.env.REACT_APP_sourcePath)]
+      [this.mapCopyTempToRoot('/temp_test_thumbnails/', process.env.REACT_APP_thumbsPath,postId),
+      this.mapCopyTempToRoot('/temp_test_x500Imgs/', process.env.REACT_APP_imgx500path,postId),
+      this.mapCopyTempToRoot('/temp_test_x1000Imgs/', process.env.REACT_APP_imgx1000path,postId),
+      this.mapCopyTempToRoot('/temp_test_sourceImgs/', process.env.REACT_APP_sourcePath,postId)]
       )  
     .then((res)=>{
       // do update
@@ -203,16 +216,16 @@ class App extends Component {
   }
 
   // create a statement to copy from temp to root and to remove from temp
-  mapCopyTempToRoot(tempRoot, root){
+  mapCopyTempToRoot(tempRoot, root, postId){
     return new Promise(resolve =>{
       const obj ={};
-      this.getImgsByPostKey(tempRoot, this.state.form.get('id')).then(
+      this.getImgsByPostKey(tempRoot, postId).then(
         (res) => {
           this.state.complete
           .filter(id => res.val().hasOwnProperty(id))
           .forEach(id => {
-            obj[root + this.state.form.get('id') + '/' + id] = res.val()[id];
-            obj[tempRoot + this.state.form.get('id') + '/' + id] = null;
+            obj[root + postId + '/' + id] = res.val()[id];
+            obj[tempRoot + postId + '/' + id] = null;
           })
 
           resolve(obj)
@@ -237,10 +250,30 @@ class App extends Component {
        selectedPost: this.state.items[id],
        running: Set(),
        complete: Set(),
-       form: formModel
+       form: formModel,
+       newPost: false
     })
 
     this.getThumbsByPostId(id);
+  }
+
+  onPostCreate(){
+    const formModel = fromJS({
+      id: firebase.database().ref().child(process.env.REACT_APP_postRoot).push().key,
+      text: "",
+      title: "",
+      category: "",
+      newImages: List(),
+    })
+    
+    this.setState(
+      {selectedItem: null,
+       selectedPost: null,
+       running: Set(),
+       complete: Set(),
+       form: formModel,
+       newPost: true
+    })
   }
 
   getThumbsByPostId(id) {
@@ -256,20 +289,15 @@ class App extends Component {
     })
   }
 
-  mapFormToDBUpdates(form){
-    const dbUpdateStatement = this.getPostUpdateStatement(form);
-    return dbUpdateStatement;
-  }
-
-  getPostUpdateStatement(form){
+  getPostUpdateStatement(form, postId){
     let update={};
     // Nice to have: check if changed from initial state
     // title statement
-    update[process.env.REACT_APP_postRoot + form.get('id') + "/title"] = form.get('title');
+    update[process.env.REACT_APP_postRoot + postId + "/title"] = form.get('title');
     // text
-    update[process.env.REACT_APP_postRoot + form.get('id') + "/text"] = form.get('text');
+    update[process.env.REACT_APP_postRoot + postId + "/text"] = form.get('text');
     // category
-    update[process.env.REACT_APP_postRoot + form.get('id') + "/category"] = form.get('category');
+    update[process.env.REACT_APP_postRoot + postId + "/category"] = form.get('category');
     return update;
    }
 
