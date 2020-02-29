@@ -11,7 +11,6 @@ import "firebase/storage";
 import {distinctUntilKeyChanged} from 'rxjs/operators';
 import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
-//TODO add empty form to create
 // TODO mark for delete
 // TODO on cancel empty the queue
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
@@ -26,11 +25,11 @@ class App extends Component {
       selectedItemThumbs: null,
       form:null,
       selectedPost: null,
-      m: null,
       running: Set(),
       complete: Set(),
       canSubmit: true,
-      newPost: false
+      newPost: false,
+      imgInputs: []
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -94,7 +93,7 @@ class App extends Component {
             horizontal="horizontal"
             />: <div></div>
           }
-          {this.addImageInputs()}
+          {this.state.imgInputs}
           <footer>
             <Button type="button" onClick={this.undoChanges.bind(this)}>Annuleren</Button>
             <Button type="submit" disabled={!this.state.canSubmit}>Opslaan</Button>
@@ -141,17 +140,17 @@ class App extends Component {
     this.setState({canSubmit:this.state.running.size === 0 })
   }
 
-  addImageInputs(){
+  addImageInputs(number){
     const inputs = [];
     if(this.state.selectedItemThumbs !== null && Object.keys(this.state.selectedItemThumbs).length < 4){
 
       const toGenerate = 4 - Object.keys(this.state.selectedItemThumbs).length;
       this.getInputs(toGenerate, inputs);
-    } else if(this.state.newPost){
-      this.getInputs(4,inputs);
+    } else if(number){
+      this.getInputs(number,inputs);
     }
     
-    return inputs;
+    this.setState({imgInputs: inputs});
   }
 
   getInputs(toGenerate, inputs) {
@@ -251,10 +250,13 @@ class App extends Component {
        running: Set(),
        complete: Set(),
        form: formModel,
-       newPost: false
+       newPost: false,
+       imgInputs: []
     })
 
-    this.getThumbsByPostId(id);
+    this.getThumbsByPostId(id).then(()=>{
+      this.addImageInputs();
+    })
   }
 
   onPostCreate(){
@@ -267,17 +269,22 @@ class App extends Component {
     })
     
     this.setState(
-      {selectedItem: null,
-       selectedPost: null,
-       running: Set(),
-       complete: Set(),
-       form: formModel,
-       newPost: true
+      { selectedItem : null,
+        selectedItemThumbs: null,
+        form: formModel,
+        selectedPost: null,
+        running: Set(),
+        complete: Set(),
+        canSubmit: true,
+        newPost: true,
+       
     })
+    this.addImageInputs(4);
+
   }
 
   getThumbsByPostId(id) {
-    this.queryThumbsByPostId(id).then((res) => {
+    return this.queryThumbsByPostId(id).then((res) => {
       this.setState({ selectedItemThumbs: res.val() });
     });
   }
