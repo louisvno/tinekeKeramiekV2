@@ -11,11 +11,9 @@ import "firebase/storage";
 import {distinctUntilKeyChanged} from 'rxjs/operators';
 import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
-// TODO mark for delete
 // TODO on cancel empty the queue
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
-// the generation of inputs is dependent on the change in thumbnails
 
 class App extends Component {
   constructor(props){
@@ -144,14 +142,12 @@ class App extends Component {
 
   addImageInputs(number){
     const inputs = [];
-    if(this.state.selectedItemThumbs !== null && Object.keys(this.state.selectedItemThumbs).length < 4){
-
+    if(number){
+      this.getInputs(number,inputs);
+    } else if(this.state.selectedItemThumbs !== null && Object.keys(this.state.selectedItemThumbs).length < 4){
       const toGenerate = 4 - Object.keys(this.state.selectedItemThumbs).length;
       this.getInputs(toGenerate, inputs);
-    } else if(number){
-      this.getInputs(number,inputs);
-    }
-    
+    }     
     this.setState({imgInputs: inputs});
   }
 
@@ -207,12 +203,11 @@ class App extends Component {
           dbUpdates[k] = v;
         })
       })
-      console.info(dbUpdates)
       return firebase.database().ref().update(dbUpdates);   
     }).then(() =>{
       this.getPostById(this.state.form.get('id'))
       this.setState({selectedItemThumbs : null})
-      this.getThumbsByPostId(this.state.form.get('id')).then(()=> this.addImageInputs())
+      this.onItemSelect(postId);
     })
   }
 
@@ -256,8 +251,9 @@ class App extends Component {
        imgInputs: []
     })
 
-    this.getThumbsByPostId(id).then(()=>{
-      this.addImageInputs();
+    this.getThumbsByPostId(id).then((res)=>{
+      if(res.val()) this.addImageInputs();
+      else this.addImageInputs(4);
     })
   }
 
@@ -288,6 +284,7 @@ class App extends Component {
   getThumbsByPostId(id) {
     return this.queryThumbsByPostId(id).then((res) => {
       this.setState({ selectedItemThumbs: res.val() });
+      return res;
     });
   }
 
