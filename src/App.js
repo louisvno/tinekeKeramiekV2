@@ -11,6 +11,8 @@ import "firebase/storage";
 import {distinctUntilKeyChanged} from 'rxjs/operators';
 import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
+import Fab from '@material-ui/core/Fab';
+import AddIcon from '@material-ui/icons/Add';
 // TODO on cancel empty the queue
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
@@ -53,7 +55,9 @@ class App extends Component {
           </Drawer>
        </nav> 
        <main>
-       <Button id="new-post-btn" type="button" onClick={this.onPostCreate.bind(this)}>Nieuw</Button>
+       <Fab id="new-post-btn"  color="primary" aria-label="add" onClick={this.onPostCreate.bind(this)}>
+        <AddIcon />
+      </Fab>
         {/* Form */}
         {(this.state.items !== null &&
           this.state.selectedItem !== null &&
@@ -140,20 +144,20 @@ class App extends Component {
     this.setState({canSubmit:this.state.running.size === 0 })
   }
 
-  addImageInputs(number){
+  addImageInputs(postId,number){
     const inputs = [];
     if(number){
-      this.getInputs(number,inputs);
+      this.getInputs(number,inputs, postId);
     } else if(this.state.selectedItemThumbs !== null && Object.keys(this.state.selectedItemThumbs).length < 4){
       const toGenerate = 4 - Object.keys(this.state.selectedItemThumbs).length;
-      this.getInputs(toGenerate, inputs);
+      this.getInputs(toGenerate, inputs, postId);
     }     
     this.setState({imgInputs: inputs});
   }
 
-  getInputs(toGenerate, inputs) {
+  getInputs(toGenerate, inputs, postId) {
     for (let index = 0; index < toGenerate; index++) {
-      inputs.push(<ImgUpload key={index} postId={this.state.form.get('id')} uploadTaskListener={this.handleImgUploadTask.bind(this)} />);
+      inputs.push(<ImgUpload key={index} postId={postId} uploadTaskListener={this.handleImgUploadTask.bind(this)} />);
     }
   }
 
@@ -258,8 +262,9 @@ class App extends Component {
   }
 
   onPostCreate(){
+    const postId = firebase.database().ref().child(process.env.REACT_APP_postRoot).push().key;
     const formModel = fromJS({
-      id: firebase.database().ref().child(process.env.REACT_APP_postRoot).push().key,
+      id: postId,
       text: "",
       title: "",
       category: "",
@@ -277,7 +282,7 @@ class App extends Component {
         newPost: true,
        
     })
-    this.addImageInputs(4);
+    this.addImageInputs(postId, 4);
 
   }
 
