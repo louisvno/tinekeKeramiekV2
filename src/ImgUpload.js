@@ -6,6 +6,7 @@ import { Line } from 'rc-progress';
 import { Subject, Observable } from 'rxjs';
 import { filter} from 'rxjs/operators';
 import Button from '@material-ui/core/Button';
+import './ImgUpload.css';
 
 
 class ImgUpload extends Component {
@@ -127,10 +128,14 @@ class ImgUpload extends Component {
     render() {
       return (
         <div>
-          {this.state.thumbnailUrl? <img src={this.state.thumbnailUrl}></img> : 
+          {this.state.thumbnailUrl? 
+          <div class="thumb-container">
+            <img src={this.state.thumbnailUrl}></img>
+          </div> 
+          : 
           <div>
-          <span>Afbeelding toevoegen: </span>
-          <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
+            <span>Afbeelding toevoegen: </span>
+            <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
           </div>
           }
           

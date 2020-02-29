@@ -1,8 +1,7 @@
 import React from 'react';
 import Button from '@material-ui/core/Button';
 import './List.css'
-import { sizing, flexbox } from '@material-ui/system';
-// TODO add thumbnails
+import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';// TODO add thumbnails
 /**
  * {
  *  items: [{
@@ -56,7 +55,14 @@ function ListItem(props) {
         }
     };
 
-    if(props.item.downloadUrl) content = <img src={props.item.downloadUrl}/>;
+    if(props.item.downloadUrl) content = <div className="thumb-container">
+      <img src={props.item.downloadUrl}/>
+      {props.markedForDelete?
+            <div class="overlay">
+            <DeleteRoundedIcon style={{ fontSize: 40 }}/>
+          </div>:null
+      }
+    </div>;
     if(props.item.title) content = <a style={aStyle} href="#" onClick={handleClick}>{props.item.title}</a>;
 
     return <li style={liStyle}>
@@ -74,6 +80,7 @@ function PostList(props) {
               buttons = {props.buttons}
               buttonEvents= {props.buttonEvents}
               onItemSelect= {props.onItemSelect}
+              markedForDelete={props.markedForDelete? props.markedForDelete.indexOf(id) > -1 :false}
               />
   );
  

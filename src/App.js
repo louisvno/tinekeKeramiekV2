@@ -92,6 +92,7 @@ class App extends Component {
             buttonEvents={[this.handleImageDelete.bind(this)]}
             onItemSelect={this.onItemSelect.bind(this)}
             horizontal="horizontal"
+            markedForDelete={this.state.form.get('removedImageIds').toJS()}
             />: <div></div>
           }
           {this.state.imgInputs}
@@ -166,7 +167,7 @@ class App extends Component {
       this.setState({form: newFormState})
     }
   }
-
+  // TODO make toggle img delete
   handleImageDelete(id) {
     const newFormState = this.state.form.updateIn(['removedImageIds'], set => set.add(id));
     this.setState({form: newFormState});
