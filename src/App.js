@@ -15,6 +15,7 @@ import Drawer from '@material-ui/core/Drawer';
 // TODO on cancel empty the queue
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
+// the generation of inputs is dependent on the change in thumbnails
 
 class App extends Component {
   constructor(props){
@@ -210,7 +211,7 @@ class App extends Component {
     }).then(() =>{
       this.getPostById(this.state.form.get('id'))
       this.setState({selectedItemThumbs : null})
-      this.getThumbsByPostId(this.state.form.get('id'))
+      this.getThumbsByPostId(this.state.form.get('id')).then(()=> this.addImageInputs())
     })
   }
 
