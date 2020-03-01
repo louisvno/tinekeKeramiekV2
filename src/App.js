@@ -13,7 +13,6 @@ import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
 import Fab from '@material-ui/core/Fab';
 import AddIcon from '@material-ui/icons/Add';
-// TODO on cancel empty the queue
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
 
@@ -55,9 +54,9 @@ class App extends Component {
           </Drawer>
        </nav> 
        <main>
-       <Fab id="new-post-btn"  color="primary" aria-label="add" onClick={this.onPostCreate.bind(this)}>
-        <AddIcon />
-      </Fab>
+        <Fab id="new-post-btn"  color="primary" aria-label="add" onClick={this.onPostCreate.bind(this)}>
+          <AddIcon />
+        </Fab>
         {/* Form */}
         {(this.state.items !== null &&
           this.state.selectedItem !== null &&
@@ -65,18 +64,18 @@ class App extends Component {
          <form onSubmit={this.handleSubmit}>
           <div id="title">
             <label>
-              Title:
-              <input type="text" value={this.state.form.get("title")} onChange={this.handlePostEdit("title")} />
+              Titel:
             </label>
+            <input type="text" value={this.state.form.get("title")} onChange={this.handlePostEdit("title")} />
           </div>
           <div id="description">
             <label>
               Beschrijving:
-              <textarea value={this.state.form.get("text")} onChange={this.handlePostEdit("text")} />
             </label>
+            <textarea value={this.state.form.get("text")} onChange={this.handlePostEdit("text")} />
           </div>
           <div id="category">
-            <label>Categorie:
+            <label>Categorie: </label>
             <select name="post-category" id="post-category" 
               value={this.state.form.get("category")} 
               onChange={this.handlePostEdit("category")}>
@@ -85,7 +84,6 @@ class App extends Component {
                 <option value="schalen">Schalen</option>
                 <option value="anderwerk">Ander werk</option>
             </select>
-            </label>
           </div>
 
           {this.state.selectedItemThumbs !== null?
@@ -97,10 +95,12 @@ class App extends Component {
             markedForDelete={this.state.form.get('removedImageIds').toJS()}
             />: <div></div>
           }
-          {this.state.imgInputs}
+          <div class="input-container">
+            {this.state.imgInputs}
+          </div>
           <footer>
-            <Button type="button" onClick={this.undoChanges.bind(this)}>Annuleren</Button>
-            <Button type="submit" disabled={!this.state.canSubmit}>Opslaan</Button>
+            <Button type="button" variant="outlined" onClick={this.undoChanges.bind(this)} color="secondary">Annuleren</Button>
+            <Button type="submit" style={{ marginLeft: 20 }} variant="outlined" disabled={!this.state.canSubmit} color="primary">Opslaan</Button>
           </footer>
         </form>
           :<div></div>}

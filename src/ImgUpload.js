@@ -127,13 +127,13 @@ class ImgUpload extends Component {
   
     render() {
       return (
-        <div>
+        <div class="upload-container">
           {this.state.thumbnailUrl? 
           <div class="thumb-container">
             <img src={this.state.thumbnailUrl}></img>
           </div> 
           : 
-          <div>
+          <div class="img-input-container">
             <span>Afbeelding toevoegen: </span>
             <input ref={this.fileInput} type="file" accept="image/*" onChange={this.handleImageAdd.bind(this)}/>
           </div>
