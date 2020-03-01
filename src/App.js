@@ -13,8 +13,27 @@ import Button from '@material-ui/core/Button';
 import Drawer from '@material-ui/core/Drawer';
 import Fab from '@material-ui/core/Fab';
 import AddIcon from '@material-ui/icons/Add';
+import Hidden from '@material-ui/core/Hidden';
+import AppBar from '@material-ui/core/AppBar';
+import MenuIcon from '@material-ui/icons/Menu';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import IconButton from '@material-ui/core/IconButton';
+import { styled } from '@material-ui/core/styles';
+
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
+const drawerWidth = 200
+const PermDrawer = styled(Drawer)({
+  backgroundColor: 'red',
+});
+const MyAppBar = styled(AppBar)(({
+  theme
+}) => ({
+  [theme.breakpoints.up('sm')]:{
+    width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: drawerWidth,
+}}));
 
 class App extends Component {
   constructor(props){
@@ -29,29 +48,69 @@ class App extends Component {
       complete: Set(),
       canSubmit: true,
       newPost: false,
-      imgInputs: []
+      imgInputs: [],
+      tempMenuOpen: false,
+    
     };
-
+ 
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handlePostEdit = this.handlePostEdit.bind(this);
   }
+  
+  handleDrawerToggle() {
+    this.setState({tempMenuOpen: !this.state.tempMenuOpen});
+  };
+ 
 
   render() {
+
     return (
       <div className="App">
-        <nav aria-label="mailbox folders">
-        {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
-          <Drawer
-            variant="persistent"
-            anchor="left"
-            open
+        <MyAppBar position="fixed">
+        <Toolbar> 
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={this.handleDrawerToggle.bind(this)}
           >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap>
+            Admin tools
+          </Typography>
+          </Toolbar>
+          </MyAppBar>
+        <div id="main-container">
+        <nav>
+        <aside>
+        {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
+          <Hidden  xsDown>
+            <PermDrawer
+              variant="permanent"
+              open
+            >
+              <div id="list-container">
+              {this.state.items === null ? <div></div> :< PostList items={this.state.items} 
+                onItemSelect={this.onItemSelect.bind(this)}
+              />}
+              </div>
+            </PermDrawer>
+          </Hidden>
+          <Hidden smUp implementation="css">
+            <Drawer
+              variant="temporary"
+              open={this.state.tempMenuOpen}
+              onClose={this.handleDrawerToggle.bind(this)}
+            >
             <div id="list-container">
-            {this.state.items === null ? <div></div> :< PostList items={this.state.items} 
-              onItemSelect={this.onItemSelect.bind(this)}
-            />}
+              {this.state.items === null ? <div></div> :< PostList items={this.state.items} 
+                onItemSelect={this.onItemSelect.bind(this)}
+              />}
             </div>
-          </Drawer>
+            </Drawer>
+          </Hidden>
+          </aside>
        </nav> 
        <main>
         <Fab id="new-post-btn"  color="primary" aria-label="add" onClick={this.onPostCreate.bind(this)}>
@@ -105,9 +164,11 @@ class App extends Component {
         </form>
           :<div></div>}
         </main>
+        </div>
       </div>
     );
   }
+
 
   undoChanges(){
     this.setState({selectedItemThumbs: null})
