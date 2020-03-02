@@ -20,6 +20,7 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { styled } from '@material-ui/core/styles';
+import Box from '@material-ui/core/Box';
 
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
@@ -32,6 +33,12 @@ const MyAppBar = styled(AppBar)(({
 }) => ({
   [theme.breakpoints.up('sm')]:{
     width: `calc(100% - ${drawerWidth}px)`,
+    marginLeft: drawerWidth,
+}}));
+const MainBox = styled(Box)(({
+  theme
+}) => ({
+  [theme.breakpoints.up('sm')]:{
     marginLeft: drawerWidth,
 }}));
 
@@ -111,7 +118,8 @@ class App extends Component {
             </Drawer>
           </Hidden>
           </aside>
-       </nav> 
+       </nav>
+       <MainBox>
        <main>
         <Fab id="new-post-btn"  color="primary" aria-label="add" onClick={this.onPostCreate.bind(this)}>
           <AddIcon />
@@ -164,6 +172,7 @@ class App extends Component {
         </form>
           :<div></div>}
         </main>
+        </MainBox>
         </div>
       </div>
     );
