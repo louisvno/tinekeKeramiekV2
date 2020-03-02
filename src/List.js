@@ -18,7 +18,7 @@ import DeleteRoundedIcon from '@material-ui/icons/DeleteRounded';// TODO add thu
  * Buttons are added to each list item
  */
 const liStyle = {
-  "list-style-type": 'none',
+  listStyleType : 'none',
   height: 'auto',
   display: 'flex',
   flexDirection: 'column'

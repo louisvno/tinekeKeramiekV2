@@ -21,6 +21,7 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import { styled } from '@material-ui/core/styles';
 import Box from '@material-ui/core/Box';
+import ImgGrid from './ImgGrid';
 
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
@@ -154,11 +155,9 @@ class App extends Component {
           </div>
 
           {this.state.selectedItemThumbs !== null?
-            < PostList items={this.state.selectedItemThumbs} 
-            buttons={[{label:"verwijderen"}]}
-            buttonEvents={[this.handleImageDelete.bind(this)]}
-            onItemSelect={this.onItemSelect.bind(this)}
-            horizontal="horizontal"
+            < ImgGrid items={this.state.selectedItemThumbs} 
+            button={{label:"verwijderen"}}
+            buttonEvent={this.handleImageDelete.bind(this)}
             markedForDelete={this.state.form.get('removedImageIds').toJS()}
             />: <div></div>
           }
