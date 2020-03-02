@@ -25,7 +25,8 @@ import ImgGrid from './ImgGrid';
 
 // TODO check different login possibilities mobile firebase.auth().signInWithRedirect(provider);
 // TODO remove hardcoded urls in imgUpload class
-const drawerWidth = 200
+const drawerWidth = 200;
+const drawerHeight = 64;
 const PermDrawer = styled(Drawer)({
   backgroundColor: 'red',
 });
@@ -41,7 +42,8 @@ const MainBox = styled(Box)(({
 }) => ({
   [theme.breakpoints.up('sm')]:{
     marginLeft: drawerWidth,
-}}));
+    
+},marginTop: drawerHeight}));
 
 class App extends Component {
   constructor(props){
@@ -89,7 +91,6 @@ class App extends Component {
           </Typography>
           </Toolbar>
           </MyAppBar>
-        <div id="main-container">
         <nav>
         <aside>
         {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
@@ -173,7 +174,6 @@ class App extends Component {
         </main>
         </MainBox>
         </div>
-      </div>
     );
   }
 
