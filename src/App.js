@@ -131,6 +131,7 @@ class App extends Component {
           this.state.selectedItem !== null &&
           this.state.form !== null) || this.state.newPost?  
          <form onSubmit={this.handleSubmit}>
+          <div id="inputfield-container">
           <div id="title">
             <label>
               Titel:
@@ -154,7 +155,7 @@ class App extends Component {
                 <option value="anderwerk">Ander werk</option>
             </select>
           </div>
-
+          </div>
           {this.state.selectedItemThumbs !== null?
             < ImgGrid items={this.state.selectedItemThumbs} 
             button={{label:"verwijderen"}}

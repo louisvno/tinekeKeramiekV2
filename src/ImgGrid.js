@@ -37,7 +37,7 @@ export default function ImgGrid(props) {
 
   return (
     <div >
-      <Grid container spacing={1}>
+      <Grid container spacing={0}>
             {generateImages(props,classes)}
       </Grid>
     </div>
