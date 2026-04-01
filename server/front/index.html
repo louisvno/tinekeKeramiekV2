@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tineke Keramiek</title>
+  <link rel="stylesheet" href="/assets/libs/bootstrap-3.3.7-dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/assets/styles/style.css">
+</head>
+
+<body>
+<header id="main-banner">
+  <div class="container-fluid">
+    <div id="logo-container">
+      <h1>Tineke Keramiek</h1>
+    </div>
+  </div>
+      
+  <nav class="navbar navbar-default">
+   <div class="container-fluid"> 
+     <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#nav-menu" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">TinekeKeramiek</a>
+     </div>
+
+     <div class="collapse navbar-collapse" id="nav-menu">
+      <ul class="nav navbar-nav">
+         <li><a href="/">Home</a></li>
+         <li class="dropdown">
+            <a href="/werk" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Werk<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><a href="/werk/dierfiguren">Dierfiguren</a></li>
+              <li><a href="/werk/schalen">Schalen</a></li>
+              <li><a href="/werk/anderwerk">Ander werk</a></li>
+            </ul>
+        </li>
+        <li><a href="/info">Info</a></li>
+      </ul> 
+     </div>
+   </div><!--  container fluid-->
+  </nav>  
+</header>
+  
+
+  
+ <div class="container">
+   
+    <div class="row component" id="about-me">
+      <div class="col-xxs-12 col-sm-3">
+        <div id="profiel-pic-container">
+            <!--profile picture as bg -->
+        </div>
+      </div>
+      <div class="col-xxs-12 col-sm-9">
+        <h2>Tineke van Noorden</h2>
+         <ul id="informatie">
+         <li><h4>Opleiding</h4>
+           <ul>
+             <li>Tehatex Maastricht, lerares handvaardigheid</li>
+             <li>Enkele workshops gevolgd en verder autodidact</li>
+             <li>Bij het CAN in Nuenen keramiekcursussen gegeven</li>  
+             <li>Op Westerwind ( Zorgroep Archipel Eindhoven) samen met een collega de keramiekgroep begeleid.</li>
+           </ul> 
+         </li>
+            <li><h4>Werkruimte</h4>
+             <ul>
+               <li>Mgr. Frenkenstraat </li>
+               <li>5674 RW Nuenen</li>
+               <li>tel. 040 2834989</li>
+               <li>0633977853</li>
+               <li> Na een telefonische afspraak kan deze bezichtigd worden</li>
+             </ul>
+           </li>
+           <li><h4>Contact</h4></li>
+           <ul>
+           <li>Mailadres: <a class = "external" href="mailto:tinekekeramiek58@gmail.com">tinekekeramiek58@gmail.com</a></li>
+           <li><a class="external" href="https://www.facebook.com/TinekeKeramiek-1023723197652776/">Via facebook <img src="/assets/images/FB-f-Logo__blue_29.png" alt="facebook-link"></a> </li>
+           </ul>
+         </ul>      
+      </div>
+    </div>
+    
+     <div class="row component" id="intro">
+      <div class="col-xxs-12" id="intro-content">
+        <div class="row">         
+        </div>
+         <div class="row technieken">
+          <div class="col-xxs-12 col-sm-5 col-sm-offset-1">
+          <h3>Handgemaakte beelden van keramiek </h3>
+            <p>
+            Ik maak mijn beelden met verschillende technieken zoals: 
+            </p>
+            <ul>
+              <li>Een duimpotje verder opbouwen met rollen klei.</li>
+              <li>Uitgerolde plakken klei en deze scheuren/ snijden en aan elkaar verbinden.</li>
+              <li>Beginnend met een mal en van daaruit verder bouwen met rollen of stukjes klei.</li>
+              <li>Met of zonder textuur van stofjes, stempels, knopen en ander materiaal.</li>
+            </ul> 
+          <p>De beelden worden na de eerste stook ingewassen met kleuroxides/ kleurpigmenten en daarna voorzien van een glazuur voordat ze in de oven gaan voor de glazuurstook.Of het beeld krijgt een ingekleurde glazuur na de eerste stook . 
+          </p>
+          </div>
+           <div class="col-xxs-12 col-sm-4 col-sm-offset-1">
+            <h3>Inspiratie</h3>
+            <p>
+             De onderwerpen ontstaan naar aanleiding van tekeningen/schetsen die ik maak. Ook  ontstaan ze soms uit een vorm die tijdens het werken met de klei spontaan verschijnt. 
+             </p>
+             <p>
+            De inspiratie ligt vaak in de natuur en in de wereld om me heen: vormen, kleuren, onderwerpen. En in de textuur van de kleihuid, die veranderd tijdens het werken ermee.
+            </p>
+          </div>
+          
+        </div>
+              
+      </div> <!-- intro-content -->
+      <div class="col-xxs-12" id="werken-titel">
+        <h3>Nieuwste werken</h3>
+      </div>
+    </div>
+
+    <div class="component" id="main-gallery">
+    <script id="gallery-temp" type="text/x-handlebars-template">
+      <div class="grid">
+      <div class="grid-sizer col-xxs-12 col-xs-6 col-sm-4 col-md-3"></div>
+      {{#each posts}}
+          <div class="grid-item col-xxs-12 col-xs-6 col-sm-4 col-md-3" data-postkey="{{@key}}">
+              <div class="col-content">
+                  <img src="/api/images/{{this.images.img0.storagePath}}" alt=""> 
+                  <h3>{{this.title}}</h3>    
+                  <p class="truncate">{{this.text}}</p>
+                  <div class="row">
+                  <div class="col-xxs-6"></div>
+                  <div class="col-xxs-6">
+                     <div class= "card-action">
+                      <a href="/werk/{{this.category}}/{{@key}}" class="text-right" style="display:block">BEKIJK</a>  
+                      </div>
+                  </div>  
+                  </div>              
+              </div>
+          </div>
+      {{/each}}
+      </div>
+      </div>
+    </script>
+  </div><!--row-->
+  
+  <div class="component" id="work-details">
+    <div id="work-details-container">
+      <div>
+        <h2 id="post-details-title"></h2>
+      </div>
+      <div id="highlighted-container">
+        <img id="highlighted" src="" alt="">
+        <div class="loader"></div>
+      </div><!--
+  --><div id="thumb-container">
+
+      </div>
+      
+      <div id="post-details-desc">
+
+      </div>
+    </div>   
+  </div>
+   
+ </div> <!--container-fluid -->
+
+<footer class="component" id="footer">
+  <div id="footer-content">
+    
+  </div>
+  <div id="up-button-container">
+    <span id="up-button">
+      <img src="/assets/images/arrow-up.svg">
+    </span>
+  </div>
+  
+</footer>
+
+<script src="/assets/libs/jquery-3.1.1.min.js"></script>
+<script src="/assets/libs/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+<script src="/assets/libs/masonry-layout/dist/masonry.pkgd.min.js"></script>
+<script src="/assets/libs/handlebars-v4.0.5.js"></script>
+<script src="https://unpkg.com/imagesloaded@4/imagesloaded.pkgd.min.js"></script>
+<script src="/assets/scripts/main.js"></script>
+
+</body>
+  
+</html>
