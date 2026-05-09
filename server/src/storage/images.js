@@ -124,7 +124,7 @@ const listImagesForPost = (postId) => {
       result[size] = items.filter(item => item.startsWith(size)).map(item => ({
         imgId: item,
         filename: item,
-        path: `/uploads/posts/${postId}/${size}/${item}`
+        path: `/uploads/posts/${postId}/${item}`
       }));
     }
   });

@@ -10,6 +10,7 @@ async function readPosts() {
   try {
     const data = fs.readFileSync(POSTS_FILE_PATH, 'utf8');
     const parsed = JSON.parse(data);
+
     return parsed.posts || {};
   } catch (error) {
     console.error('Read posts error:', error);
@@ -212,15 +213,13 @@ router.get('/recent/:limit', async (req, res) => {
     const limitNum = parseInt(limit, 10) || 10;
     
     const posts = await readPosts();
-    const sorted = Object.entries(posts)
-      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+
+    const sorted = Object.keys(posts)
+      .sort((a, b) => new Date(posts[b].publishDate) - new Date(posts[a].publishDate))
       .slice(0, limitNum);
-    
-    const result = {};
-    sorted.forEach(([id, post]) => {
-      result[id] = post;
-    });
-    
+    console.log(sorted)
+    const result = sorted.reduce((prev, curr) => Object.assign(prev, {[curr]: posts[curr]}), {})
+
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Get recent posts error:', error);

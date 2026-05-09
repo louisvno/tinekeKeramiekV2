@@ -91,15 +91,34 @@ router.get('/post/:postId', (req, res) => {
 });
 
 // Get single image by ID
+// TODO correct image folder structure
 router.get('/:postId/:imgId', (req, res) => {
   try {
     const { postId, imgId } = req.params;
     
     // Construct image path (try all sizes)
     const possiblePaths = [
-      `/uploads/posts/${postId}/x500_${imgId}`,
       `/uploads/posts/${postId}/${imgId}`,
-      `/uploads/posts/${postId}/${imgId}`
+      `/uploads/posts/${postId}/${imgId}/`,
+    ];
+    
+    res.redirect(301, possiblePaths[0]);
+  } catch (error) {
+    console.error('Get image error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get image'
+    });
+  }
+});
+//legacy endpoint
+router.get('/:postId/:imgfolder/:imgId', (req, res) => {
+  try {
+    const { postId, imgId, imgfolder } = req.params;
+    
+    // Construct image path (try all sizes)
+    const possiblePaths = [
+      `/uploads/posts/${postId}/${imgfolder}/${imgId}`,
     ];
     
     res.redirect(301, possiblePaths[0]);

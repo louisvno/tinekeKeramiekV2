@@ -1,5 +1,4 @@
 initApp();
-const imageResolutionPrefixes = ['x500_', 'x1000_'];
 
 function initApp(){
   this.app = new App();
@@ -136,15 +135,13 @@ document.getElementById("nav-menu").addEventListener("click", function(e){
 
 document.getElementById("thumb-container").addEventListener("click", function(e){
     if(e.target.hasAttribute('data-img-id')){
-       var imgId = e.target.getAttribute('data-img-id');
-       var postId = window.location.pathname.split("/").pop();
+       var imgx500path = e.target.getAttribute('data-img-id');
        var loader = document.querySelector('.loader');
        loader.style.display= 'inline-block';
        loader.classList.add('spin');
-       getx500ById(postId, imgId).then(function(data){
-          var imgObj = data;
-          document.getElementById('highlighted').setAttribute('src',imgObj.downloadUrl);
-       })
+        
+       document.getElementById('highlighted').setAttribute('src',imgx500path.replace(".png", ""));
+
     }
 });
 
@@ -248,29 +245,30 @@ function loadPostDetails (){
 
 function loadPostImg(){
     var postId = window.location.pathname.split("/").pop();
+
     return getx500ByPostId(postId).then(function(data){
-        data.forEach(function(img){
-            document.getElementById("highlighted").src = img.downloadUrl;
+        console.log(data)
+        data.x500.forEach(function(img){
+            document.getElementById("highlighted").src = img.path;
             return true;
         })
       
     });
 }
-//TODO thumbs should have img x500 id
+
 function loadThumbs(postId){
   var postId = window.location.pathname.split("/").pop();
    
   return getThumbsByPostId(postId).then(function(data){
-                  console.log(thumbnail)
 
           var container=document.getElementById("thumb-container");
           container.innerHTML = "";
-          data.forEach(function(thumbnail){
+          data.thumb.forEach(function(thumbnail){
               console.log(thumbnail)
               var thumb = thumbnail;      
               var myImg = new Image(150, 150);
-              myImg.src = thumb.downloadUrl;
-              myImg.setAttribute('data-img-id', thumbnail.imgId);
+              myImg.src = thumb.path;
+              myImg.setAttribute('data-img-id', thumbnail.path.replace("thumb_", "x500_"));
               myImg.classList.add("work-thumbnail");
               container.appendChild(myImg);
           });
