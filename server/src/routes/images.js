@@ -4,6 +4,8 @@ const path = require('path');
 const { uploadImage, deleteImage, listImagesForPost } = require('../storage/images');
 
 const router = express.Router();
+const enableWriteRoutes = process.env.READONLY !== 'true';
+
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -24,8 +26,15 @@ const upload = multer({
   }
 });
 
-// Upload image for a post
+// Upload image for a post (disabled in readonly mode)
 router.post('/upload', (req, res) => {
+  if (!enableWriteRoutes) {
+    return res.status(403).json({
+      success: false,
+      error: 'Read-only mode: POST /upload not allowed'
+    });
+  }
+  
   try {
     const { postId } = req.body;
     
@@ -111,8 +120,15 @@ router.get('/:postId/:imgId', (req, res) => {
   }
 });
 
-// Delete image
+// Delete image (disabled in readonly mode)
 router.delete('/:postId/:imgId', (req, res) => {
+  if (!enableWriteRoutes) {
+    return res.status(403).json({
+      success: false,
+      error: 'Read-only mode: DELETE /:postId/:imgId not allowed'
+    });
+  }
+  
   try {
     const { postId, imgId } = req.params;
     

@@ -3,7 +3,7 @@ const path = require('path');
 const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 
-const UPLOAD_BASE = process.env.UPLOAD_BASE || '/home/lvn/projects/tinekeKeramiekV2/server/uploads';
+const UPLOAD_BASE = process.env.UPLOAD_BASE;
 
 // Ensure upload directories exist
 const ensureUploadDirs = () => {

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const POSTS_FILE_PATH = path.join(__dirname, '../../uploads/posts/posts.json');
+const enableWriteRoutes = process.env.READONLY !== 'true';
 
 // Helper to read posts from file
 async function readPosts() {
@@ -18,18 +19,7 @@ async function readPosts() {
   }
 }
 
-// Helper to write posts to file
-async function writePosts(posts) {
-  try {
-    const data = JSON.stringify({ posts }, null, 2);
-    fs.writeFileSync(POSTS_FILE_PATH, data, 'utf8');
-  } catch (error) {
-    console.error('Write posts error:', error);
-    throw error;
-  }
-}
-
-// Get all posts
+// Get all posts (read-only always works)
 router.get('/', async (req, res) => {
   try {
     const posts = await readPosts();
@@ -43,7 +33,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single post by ID
+// Get single post by ID (read-only always works)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -72,8 +62,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new post
+// Create new post (write - disabled in readonly mode)
 router.post('/', async (req, res) => {
+  if (!enableWriteRoutes) {
+    return res.status(403).json({
+      success: false,
+      error: 'Read-only mode: POST not allowed'
+    });
+  }
+
   try {
     const { title, text, category } = req.body;
     
@@ -112,8 +109,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update post
+// Update post (write - disabled in readonly mode)
 router.put('/:id', async (req, res) => {
+  if (!enableWriteRoutes) {
+    return res.status(403).json({
+      success: false,
+      error: 'Read-only mode: PUT not allowed'
+    });
+  }
+
   try {
     const { id } = req.params;
     const { title, text, category } = req.body;
@@ -151,8 +155,15 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete post
+// Delete post (write - disabled in readonly mode)
 router.delete('/:id', async (req, res) => {
+  if (!enableWriteRoutes) {
+    return res.status(403).json({
+      success: false,
+      error: 'Read-only mode: DELETE not allowed'
+    });
+  }
+
   try {
     const { id } = req.params;
     
@@ -182,7 +193,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Get posts by category
+// Get posts by category (read-only always works)
 router.get('/category/:category', async (req, res) => {
   try {
     const { category } = req.params;
@@ -206,20 +217,19 @@ router.get('/category/:category', async (req, res) => {
   }
 });
 
-// Get most recent posts
+// Get most recent posts (read-only always works)
 router.get('/recent/:limit', async (req, res) => {
   try {
     const { limit } = req.params;
     const limitNum = parseInt(limit, 10) || 10;
     
     const posts = await readPosts();
-
+    
     const sorted = Object.keys(posts)
       .sort((a, b) => new Date(posts[b].publishDate) - new Date(posts[a].publishDate))
       .slice(0, limitNum);
-    console.log(sorted)
-    const result = sorted.reduce((prev, curr) => Object.assign(prev, {[curr]: posts[curr]}), {})
-
+    const result = sorted.reduce((prev, curr) => Object.assign(prev, {[curr]: posts[curr]}), {});
+    
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Get recent posts error:', error);
