@@ -119,6 +119,7 @@ const listImagesForPost = (postId) => {
 
   sizes.forEach(size => {
     const dir = uploadPath;
+
     if (fs.existsSync(dir)) {
       const items = fs.readdirSync(dir);
       result[size] = items.filter(item => item.startsWith(size)).map(item => ({
