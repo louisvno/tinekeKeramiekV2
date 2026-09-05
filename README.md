@@ -1,13 +1,12 @@
 # Tineke Keramiek - Express Server
 
-A Node.js/Express server for storing and serving images, replacing Firebase Storage.
+A Node.js/Express server for storing and serving images
 
 ## Features
 
 - **Image Upload**: Upload images with automatic resizing (thumbnails, x500, x1000)
 - **Image Storage**: Store images locally in `/uploads/posts/{postId}/`
 - **Post Management**: Full CRUD operations for posts
-- **Migration Tool**: Migrate existing images from Firebase Storage
 - **REST API**: JSON API for frontend integration
 
 ## Installation
@@ -27,13 +26,7 @@ PORT=3001
 HOST=localhost
 
 # Upload directory
-UPLOAD_BASE=/home/lvn/projects/tinekeKeramiekV2/server/uploads
-
-# Firebase Admin (required for migration)
-FIREBASE_PROJECT_ID=tinekekeramiek
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk@tinekekeramiek.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY=your-private-key-here
-```
+UPLOAD_BASE=/tinekeKeramiekV2/server/uploads
 
 ## Running the Server
 
@@ -76,38 +69,28 @@ npm start
 server/
 ├── src/
 │   ├── index.js              # Main server entry
-│   ├── config/
-│   │   └── database.js       # Firebase DB connection
-│   ├── routes/
+│   ├── config/               # Configuration files
+│   ├── routes/               # API route definitions
 │   │   ├── images.js         # Image endpoints
 │   │   ├── posts.js          # Post endpoints
 │   │   └── migrate.js        # Migration endpoints
-│   ├── storage/
-│   │   └── images.js         # Image storage logic
+│   ├── storage/              # Image storage logic
+│   │   └── images.js         # Image processing and storage
 │   └── migrate.js            # CLI migration script
 ├── uploads/                  # Image storage
 │   └── posts/
-│       └── {postId}/
-│           ├── source/       # Original images
-│           ├── thumbnails/   # 200x200 images
-│           ├── x500/         # 500x500 images
-│           └── x1000/        # 1000x1000 images
+│       └── {postId}/         # Per-post directory containing original and processed images
+├── front/                    # Frontend assets (optional)
+│   ├── assets/               # Frontend static assets
+│   └── scripts/              # Frontend scripts
+├── scripts/                  # Utility scripts
 └── package.json
 ```
-
-## Migration Steps
-
-1. **Setup Server**: Run `npm install`
-2. **Configure Firebase**: Set up `.env` with Firebase Admin credentials
-3. **Test Migration**: `GET /api/migrate/posts-to-migrate` to see posts with images
-4. **Run Migration**: `npm run migrate` or `POST /api/migrate/migrate-all`
-5. **Update Client**: Point frontend to new API endpoints
 
 ## Important Notes
 
 - **Image Sizes**: Images are automatically resized to thumbnails (200px), x500 (500px), x1000 (1000px), and source (original)
 - **Storage Location**: Images stored in `/uploads/posts/{postId}/`
-- **Firebase Required**: Only for migration. After migration, server runs independently
 - **Node.js Version**: Requires Node.js 14+
 
 ## Troubleshooting
