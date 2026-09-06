@@ -1,0 +1,3 @@
+ - datalayerService.js — raw database/storage layer (read/write operations)                 
+ - postService.js — business logic (createPost, updatePost, filterPostsByCategory, etc.)    
+ - posts.js — minimal routing that delegates to postService

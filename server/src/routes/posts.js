@@ -1,68 +1,67 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
+const postService = require('../services/postService');
 
-const POSTS_FILE_PATH = path.join(__dirname, '../../uploads/posts/posts.json');
 const enableWriteRoutes = process.env.READONLY !== 'true';
 
-// Helper to read posts from file
-async function readPosts() {
-  try {
-    const data = fs.readFileSync(POSTS_FILE_PATH, 'utf8');
-    const parsed = JSON.parse(data);
-
-    return parsed.posts || {};
-  } catch (error) {
-    console.error('Read posts error:', error);
-    return {};
+function mapError(res, error, fallbackMessage) {
+  if (error.code === 'VALIDATION') {
+    return res.status(400).json({ success: false, error: error.message });
   }
+  if (error.code === 'NOT_FOUND') {
+    return res.status(404).json({ success: false, error: error.message });
+  }
+  console.error(fallbackMessage, error);
+  return res.status(500).json({ success: false, error: fallbackMessage });
 }
 
-// Get all posts (read-only always works)
 router.get('/', async (req, res) => {
   try {
-    const posts = await readPosts();
+    const posts = await postService.getAllPosts();
     res.json({ success: true, data: posts });
   } catch (error) {
-    console.error('Get posts error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch posts'
-    });
+    mapError(res, error, 'Failed to fetch posts');
   }
 });
 
-// Get single post by ID (read-only always works)
+router.get('/category/:category', async (req, res) => {
+  try {
+    const posts = await postService.getAllPosts();
+    const filtered = postService.filterPostsByCategory(posts, req.params.category);
+    res.json({ success: true, data: filtered });
+  } catch (error) {
+    mapError(res, error, 'Failed to fetch posts by category');
+  }
+});
+
+router.get('/recent/:limit', async (req, res) => {
+  try {
+    const posts = await postService.getAllPosts();
+    const recent = postService.getRecentPosts(posts, req.params.limit);
+    res.json({ success: true, data: recent });
+  } catch (error) {
+    mapError(res, error, 'Failed to fetch recent posts');
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
     if (!id) {
       return res.status(400).json({ error: 'Post ID is required' });
     }
-    
-    const posts = await readPosts();
-    const post = posts[id];
-    
+
+    const post = await postService.getPost(id);
     if (!post) {
-      return res.status(404).json({
-        success: false,
-        error: 'Post not found'
-      });
+      return res.status(404).json({ success: false, error: 'Post not found' });
     }
-    
+
     res.json({ success: true, data: post });
   } catch (error) {
-    console.error('Get post error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch post'
-    });
+    mapError(res, error, 'Failed to fetch post');
   }
 });
 
-// Create new post (write - disabled in readonly mode)
 router.post('/', async (req, res) => {
   if (!enableWriteRoutes) {
     return res.status(403).json({
@@ -72,44 +71,14 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const { title, text, category } = req.body;
-    
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-    
-    const posts = await readPosts();
-    const id = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const post = {
-      title: title,
-      text: text || '',
-      category: category || '',
-      userId: req.body.userId || 'user_id',
-      publishDate: new Date().toISOString(),
-      images: {},
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    posts[id] = post;
-    await writePosts(posts);
-    
-    res.status(201).json({
-      success: true,
-      data: post,
-      id: id
-    });
+    const { title, text, category, userId } = req.body;
+    const { id, post } = await postService.createPost({ title, text, category, userId });
+    res.status(201).json({ success: true, data: post, id });
   } catch (error) {
-    console.error('Create post error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create post'
-    });
+    mapError(res, error, 'Failed to create post');
   }
 });
 
-// Update post (write - disabled in readonly mode)
 router.put('/:id', async (req, res) => {
   if (!enableWriteRoutes) {
     return res.status(403).json({
@@ -120,42 +89,18 @@ router.put('/:id', async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { title, text, category } = req.body;
-    
     if (!id) {
       return res.status(400).json({ error: 'Post ID is required' });
     }
-    
-    const posts = await readPosts();
-    const post = posts[id];
-    
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        error: 'Post not found'
-      });
-    }
-    
-    const updates = {};
-    if (title !== undefined) updates.title = title;
-    if (text !== undefined) updates.text = text;
-    if (category !== undefined) updates.category = category;
-    updates.updatedAt = new Date().toISOString();
-    
-    Object.assign(post, updates);
-    await writePosts(posts);
-    
+
+    const { title, text, category } = req.body;
+    const post = await postService.updatePost(id, { title, text, category });
     res.json({ success: true, data: post });
   } catch (error) {
-    console.error('Update post error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update post'
-    });
+    mapError(res, error, 'Failed to update post');
   }
 });
 
-// Delete post (write - disabled in readonly mode)
 router.delete('/:id', async (req, res) => {
   if (!enableWriteRoutes) {
     return res.status(403).json({
@@ -166,77 +111,14 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const { id } = req.params;
-    
     if (!id) {
       return res.status(400).json({ error: 'Post ID is required' });
     }
-    
-    const posts = await readPosts();
-    
-    if (!posts[id]) {
-      return res.status(404).json({
-        success: false,
-        error: 'Post not found'
-      });
-    }
-    
-    delete posts[id];
-    await writePosts(posts);
-    
+
+    await postService.deletePost(id);
     res.json({ success: true, message: 'Post deleted successfully' });
   } catch (error) {
-    console.error('Delete post error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete post'
-    });
-  }
-});
-
-// Get posts by category (read-only always works)
-router.get('/category/:category', async (req, res) => {
-  try {
-    const { category } = req.params;
-    
-    const posts = await readPosts();
-    const filtered = {};
-    
-    Object.keys(posts).forEach(postId => {
-      if (posts[postId].category === category) {
-        filtered[postId] = posts[postId];
-      }
-    });
-    
-    res.json({ success: true, data: filtered });
-  } catch (error) {
-    console.error('Get posts by category error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch posts by category'
-    });
-  }
-});
-
-// Get most recent posts (read-only always works)
-router.get('/recent/:limit', async (req, res) => {
-  try {
-    const { limit } = req.params;
-    const limitNum = parseInt(limit, 10) || 10;
-    
-    const posts = await readPosts();
-    
-    const sorted = Object.keys(posts)
-      .sort((a, b) => new Date(posts[b].publishDate) - new Date(posts[a].publishDate))
-      .slice(0, limitNum);
-    const result = sorted.reduce((prev, curr) => Object.assign(prev, {[curr]: posts[curr]}), {});
-    
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('Get recent posts error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch recent posts'
-    });
+    mapError(res, error, 'Failed to delete post');
   }
 });
 

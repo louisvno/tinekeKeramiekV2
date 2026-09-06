@@ -37,6 +37,11 @@ app.use('/api/posts', postRoutes);
 // Serve frontend from front folder (must be AFTER API routes)
 app.use(express.static(path.join(__dirname, '../front')));
 
+// Admin route - serve admin page
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../front/admin.html'));
+});
+
 // SPA fallback - serve index.html for client-side routing (must be LAST)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../front/index.html'));
