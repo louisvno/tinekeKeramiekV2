@@ -10,39 +10,9 @@ the backend endpoints this page calls:
 
 ---
 
-## 🔴 Critical
-
-### 1. Progress bar is broken
-`currentImageIndex` is overwritten in the `for` loop (it ends at the highest
-selected index), and uploads are fired concurrently without being awaited.
-So `progress` is computed from a value that doesn't describe which upload just
-finished, and the last-resolved upload *overwrites* the others — progress can
-jump backwards and won't track actual completion. It also divides by
-`imageInputs.length` (4) rather than the number of files actually selected.
-
-```js
-// count real files, not inputs
-let totalImages = 0, done = 0;
-imageInputs.forEach(inp => totalImages += (inp.files ? inp.files.length : 0));
-
-function setProgress() {
-  progress = totalImages ? Math.round(done / totalImages * 100) : 0;
-  progressBar.style.width = progress + '%';
-}
-// in each upload's then():  done++; setProgress();
-```
-
-### 2. "Post created successfully!" alert fires before images finish uploading
-The alert fires immediately after the fire‑and‑forget `for` loop, not after the
-uploads complete. The user is told success while images are still in flight,
-and a later image failure pops a *second* alert. Decouple post success from
-image success (e.g. resolve after all uploads settle, or track a failure count).
-
----
-
 ## 🟡 Correctness / Robustness
 
-### 3. No `response.ok` check
+### 1. No `response.ok` check
 `response.json()` is called unconditionally on both the post-creation and image
 uploads; on 400/403/500 you only notice via `data.success === false`. If the
 body isn't valid JSON the promise rejects and your `catch` shows a misleading
@@ -58,20 +28,17 @@ if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const data = await res.json();
 ```
 
-### 4. No double‑submit guard
+### 2. No double‑submit guard
 The submit button stays enabled during upload; a second click creates a second
 post (and re‑uploads). Disable the button (and/or set a flag) until done.
 
-### 5. Form never reset after a successful creation.
+### 3. Form never reset after a successful creation.
 
-### 6. `#result-message` is declared in HTML but never written to
+### 4. `#result-message` is declared in HTML but never written to
 All feedback goes through `alert()` instead. Either wire it up or drop the
 element.
 
-### 7. `FileReader.onerror` unhandled
-A read failure is silent.
-
-### 8. No client‑side validation of image type/size
+### 5. No client‑side validation of image type/size
 The server validates, so this is not a security hole — just better UX to
 reject early.
 
@@ -82,21 +49,30 @@ reject early.
 - **`#upload-progress`** is a plain `<div>` with text, not a Bootstrap
   `.progress > .progress-bar`, so setting `style.width` produces no visible
   bar (JS/CSS mismatch).
-- **Empty second `<script>` in `<body>`** — remove the placeholder.
+- Empty second `<script>` in `<body>` — remove the placeholder.
 - `progress` / `progressBar` are fine as IIFE‑scoped variables.
 
 ---
 
 ## Recommended priority
-The two critical items are the only ones that affect user-visible behavior
-or data integrity:
+The remaining items are robustness/polish, ordered by user impact:
 
-1. Make progress count‑based (fix #1).
-2. Only show "success" after the post **and** the images are settled (fix #2).
-
-The rest are polish/robustness.
+1. Add `response.ok` checks (fix #1) — avoids misleading alerts on HTTP errors.
+2. Double‑submit guard (fix #2) — prevents duplicate posts from a second
+   click during a long upload.
+3. Form reset + `#result-message` wiring (fixes #3–4) — UX polish.
 
 ## Fixed
+- **Progress bar was broken** (was Critical #1) — fixed: `totalImages` now
+  counts real selected files (not input slots), `setProgress()` divides by that
+  count, and uploads are awaited with `Promise.all`, so `done` always describes
+  the upload that just settled. Progress can no longer jump backwards.
+- **"Post created successfully!" alert fired before images finished**
+  (was Critical #2) — fixed: the alert is now shown only after
+  `Promise.all(uploadPromises)` settles, with a failure count shown when some
+  uploads failed.
+- **`FileReader.onerror` unhandled** (was #7) — fixed: read failures now
+  increment `failed`, alert, and resolve the upload promise.
 - Client‑generated `postId` / orphaned images — resolved in commit `7bf53e1`
   ("fix post id bug"): uploads now use the server‑generated `data.id`, and the
   dead `postData` / client ID code (including the deprecated `substr` call) was

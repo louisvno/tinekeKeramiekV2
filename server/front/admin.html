@@ -23,11 +23,18 @@
       const imageInputs = document.querySelectorAll('#images-container input');
       const progressBar = document.getElementById('upload-progress');
       
-      let currentImageIndex = 0;
       let progress = 0;
+      let totalImages = 0;
+      let done = 0;
+      let failed = 0;
       
       // Initialize progress bar
       progressBar.style.width = '0%';
+
+      function setProgress() {
+        progress = totalImages ? Math.round(done / totalImages * 100) : 0;
+        progressBar.style.width = progress + '%';
+      }
       
       postForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -59,63 +66,91 @@
         })
         .then(response => response.json())
         .then(data => {
-          if (data.success) {
-            // Now upload images one by one using the server-generated post ID
-            for (let i = 0; i < imageInputs.length; i++) {
-              if (imageInputs[i].files && imageInputs[i].files.length > 0) {
-                uploadImage(imageInputs[i], data.id);
-                currentImageIndex = i;
-              }
-            }
-            
-            // Show success message
-            alert('Post created successfully!');
-            // Optionally redirect or show post list
-          } else {
+          if (!data.success) {
             alert('Failed to create post. Error: ' + data.error);
+            return;
           }
+          
+          // Count real selected files (not input slots) and reset counters
+          totalImages = 0;
+          imageInputs.forEach(inp => totalImages += (inp.files ? inp.files.length : 0));
+          done = 0;
+          failed = 0;
+          setProgress();
+          
+          if (totalImages === 0) {
+            alert('Post created successfully!');
+            return;
+          }
+          
+          // Fire all image uploads with the server-generated post ID
+          const uploadPromises = [];
+          for (let i = 0; i < imageInputs.length; i++) {
+            if (imageInputs[i].files && imageInputs[i].files.length > 0) {
+              uploadPromises.push(uploadImage(imageInputs[i], data.id));
+            }
+          }
+          
+          // Only report success after every image upload has settled
+          return Promise.all(uploadPromises).then(() => {
+            if (failed > 0) {
+              alert('Post created, but ' + failed + ' image upload(s) failed.');
+            } else {
+              alert('Post created successfully!');
+            }
+          });
         })
         .catch(err => {
           alert('Error creating post: ' + err.message);
         });
       });
       
-      // Function to upload an image with the given postId
+      // Upload one image; resolves once the attempt has settled (success or failure)
       function uploadImage(fileInput, postId) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const file = e.target.file;
-          
-          if (!file) return;
-          
-          // Create FormData for multer-compatible upload
-          const formData = new FormData();
-          formData.append('postId', postId);
-          formData.append('file', file);
-          
-          // Upload image
-          fetch('/api/images/upload', {
-            method: 'POST',
-            body: formData
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              progress = Math.floor((currentImageIndex + 1) / imageInputs.length * 100);
-              progressBar.style.width = progress + '%';
-              // Update UI if needed
-              console.log('Image uploaded successfully:', data.data);
-            } else {
-              alert('Failed to upload image: ' + data.error);
-              progressBar.style.width = '0%';
-            }
-          })
-          .catch(err => {
-            alert('Error uploading image: ' + err.message);
-            progressBar.style.width = '0%';
-          });
-        };
-        reader.readAsArrayBuffer(fileInput.files[0]);
+        return new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const file = e.target.file;
+            
+            if (!file) return resolve();
+            
+            // Create FormData for multer-compatible upload
+            const formData = new FormData();
+            formData.append('postId', postId);
+            formData.append('file', file);
+            
+            // Upload image
+            fetch('/api/images/upload', {
+              method: 'POST',
+              body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+              done++;
+              if (data.success) {
+                setProgress();
+                console.log('Image uploaded successfully:', data.data);
+              } else {
+                failed++;
+                alert('Failed to upload image: ' + data.error);
+              }
+              resolve();
+            })
+            .catch(err => {
+              done++;
+              failed++;
+              alert('Error uploading image: ' + err.message);
+              resolve();
+            });
+          };
+          reader.onerror = function() {
+            done++;
+            failed++;
+            alert('Failed to read image.');
+            resolve();
+          };
+          reader.readAsArrayBuffer(fileInput.files[0]);
+        });
       }
     });
   </script>
