@@ -41,9 +41,6 @@
           return;
         }
         
-        // Create a unique post ID (format: post_timestamp_random)
-        const postId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
         // Build the form data for post creation
         const formData = {
           title: title,
@@ -63,13 +60,10 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            const postData = data.data;
-            postData.id = postId;
-            
-            // Now upload images one by one
+            // Now upload images one by one using the server-generated post ID
             for (let i = 0; i < imageInputs.length; i++) {
               if (imageInputs[i].files && imageInputs[i].files.length > 0) {
-                uploadImage(imageInputs[i], postId);
+                uploadImage(imageInputs[i], data.id);
                 currentImageIndex = i;
               }
             }
