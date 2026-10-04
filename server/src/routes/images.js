@@ -27,7 +27,7 @@ const upload = multer({
 });
 
 // Upload image for a post (disabled in readonly mode)
-router.post('/upload', (req, res) => {
+router.post('/upload', upload.single('file'), (req, res) => {
   if (!enableWriteRoutes) {
     return res.status(403).json({
       success: false,

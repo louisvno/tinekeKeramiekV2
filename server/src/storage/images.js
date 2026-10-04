@@ -27,8 +27,7 @@ const uploadImage = async (postId, file, imgId) => {
   ensureUploadDirs();
   
   const uploadPath = path.join(UPLOAD_BASE, 'posts', postId);
-  const sourceDir = path.join(uploadPath, 'source');
-  const sizes = ['thumbnails', 'x500', 'x1000'];
+  const sizes = ['source', 'thumbnails', 'x500', 'x1000'];
   
   // Create directories
   sizes.forEach(size => fs.mkdirSync(path.join(uploadPath, size), { recursive: true }));
@@ -45,8 +44,8 @@ const uploadImage = async (postId, file, imgId) => {
   };
   
   try {
-    // Read and process the image
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // Read and process the image (multer.memoryStorage() stores the file in file.buffer)
+    const buffer = file.buffer;
     
     // Write source image (original size)
     fs.writeFileSync(paths.source, buffer);
