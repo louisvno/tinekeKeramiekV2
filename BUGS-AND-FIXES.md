@@ -95,7 +95,7 @@ server/uploads/posts/<postId>/
   x1000_<originalname>.jpg      <- 1000px, keeps original extension
 ```
 
-**Fix (pending / in progress):** Rewrite `uploadImage` (and `deleteImage`) to write flat files with the `thumb_` / `x500_` / `x1000_` prefixes, matching the existing folders.
+**Fix:** Rewrote `uploadImage` and `deleteImage` to write/delete flat files with the `thumb_` / `x500_` / `x1000_` prefixes, matching the existing folders. Thumbnails are always PNG (`thumb_<name>.<ext>.png`); x500/x1000 keep the original extension. The upload route now `await`s the async `uploadImage` call.
 
 ---
 

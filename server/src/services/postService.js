@@ -91,12 +91,110 @@ async function deletePost(id) {
   await datalayerService.savePosts(posts);
 }
 
+function nextImageKey(images) {
+  let max = -1;
+  Object.keys(images || {}).forEach(key => {
+    const match = /^img(\d+)$/.exec(key);
+    if (match) {
+      max = Math.max(max, parseInt(match[1], 10));
+    }
+  });
+  return `img${max + 1}`;
+}
+
+async function addImageToPost(postId, { name, storagePath, publishDate }) {
+  const posts = await datalayerService.readPosts();
+  const post = posts[postId];
+
+  if (!post) {
+    const error = new Error('Post not found');
+    error.code = 'NOT_FOUND';
+    throw error;
+  }
+
+  if (!post.images) {
+    post.images = {};
+  }
+
+  const imgKey = nextImageKey(post.images);
+  const now = publishDate || new Date().toISOString();
+  post.images[imgKey] = {
+    name,
+    publishDate: now,
+    storagePath
+  };
+  post.updatedAt = now;
+
+  posts[postId] = post;
+  await datalayerService.savePosts(posts);
+
+  return { imgKey, image: post.images[imgKey], post };
+}
+
+function stripSizePrefix(name) {
+  let base = name || '';
+  if (base.startsWith('thumb_')) {
+    base = base.slice('thumb_'.length);
+    if (base.toLowerCase().endsWith('.png')) {
+      base = base.slice(0, -4);
+    }
+  } else if (base.startsWith('x500_')) {
+    base = base.slice('x500_'.length);
+  } else if (base.startsWith('x1000_')) {
+    base = base.slice('x1000_'.length);
+  }
+  return base;
+}
+
+async function removeImageFromPost(postId, imageRef) {
+  const posts = await datalayerService.readPosts();
+  const post = posts[postId];
+
+  if (!post) {
+    const error = new Error('Post not found');
+    error.code = 'NOT_FOUND';
+    throw error;
+  }
+
+  if (!post.images) {
+    return { removed: false, post };
+  }
+
+  const refBase = stripSizePrefix(imageRef.split('/').pop());
+  const imgKey = Object.keys(post.images).find(key => {
+    const image = post.images[key];
+    const storageName = (image.storagePath || '').split('/').pop();
+    return (
+      key === imageRef ||
+      image.name === imageRef ||
+      image.storagePath === imageRef ||
+      image.storagePath === `${postId}/${imageRef}` ||
+      image.storagePath.endsWith(`/${imageRef}`) ||
+      stripSizePrefix(image.name) === refBase ||
+      stripSizePrefix(storageName) === refBase
+    );
+  });
+
+  if (!imgKey) {
+    return { removed: false, post };
+  }
+
+  delete post.images[imgKey];
+  post.updatedAt = new Date().toISOString();
+  posts[postId] = post;
+  await datalayerService.savePosts(posts);
+
+  return { removed: true, imgKey, post };
+}
+
 module.exports = {
   getAllPosts,
   getPost,
   createPost,
   updatePost,
   deletePost,
+  addImageToPost,
+  removeImageFromPost,
   filterPostsByCategory,
   getRecentPosts
 };

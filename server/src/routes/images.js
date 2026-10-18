@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const { uploadImage, deleteImage, listImagesForPost } = require('../storage/images');
+const postService = require('../services/postService');
 
 const router = express.Router();
 const enableWriteRoutes = process.env.READONLY !== 'true';
@@ -27,7 +28,7 @@ const upload = multer({
 });
 
 // Upload image for a post (disabled in readonly mode)
-router.post('/upload', upload.single('file'), (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
   if (!enableWriteRoutes) {
     return res.status(403).json({
       success: false,
@@ -50,17 +51,33 @@ router.post('/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
     }
+
+    const post = await postService.getPost(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Post not found' });
+    }
     
     // Generate unique image ID
     const imgId = postId + '-' + Date.now();
     
-    // Upload image
-    const result = uploadImage(postId, req.file, imgId);
+    // Upload image (sharp processing is async)
+    const result = await uploadImage(postId, req.file, imgId);
     
     if (result.success) {
+      const x500Name = `x500_${result.filename}`;
+      const { imgKey, image } = await postService.addImageToPost(postId, {
+        name: x500Name,
+        storagePath: `${postId}/${x500Name}`,
+        publishDate: new Date().toISOString()
+      });
+
       res.json({
         success: true,
-        data: result
+        data: {
+          ...result,
+          imgKey,
+          image
+        }
       });
     } else {
       res.status(500).json({
@@ -121,7 +138,7 @@ router.get('/:postId/:imgId', (req, res) => {
 });
 
 // Delete image (disabled in readonly mode)
-router.delete('/:postId/:imgId', (req, res) => {
+router.delete('/:postId/:imgId', async (req, res) => {
   if (!enableWriteRoutes) {
     return res.status(403).json({
       success: false,
@@ -137,9 +154,10 @@ router.delete('/:postId/:imgId', (req, res) => {
     }
     
     const result = deleteImage(postId, imgId);
-    
+
     if (result.success) {
-      res.json({ success: true, data: result });
+      const meta = await postService.removeImageFromPost(postId, imgId);
+      res.json({ success: true, data: { ...result, ...meta } });
     } else {
       res.status(500).json({
         success: false,
